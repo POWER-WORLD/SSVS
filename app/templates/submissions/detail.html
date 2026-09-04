@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Student Report — {{ submission.student_name }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <h3 class="fw-bold mb-0">{{ submission.student_name }}</h3>
+          {% set v_status = submission.verification_status or 'verified' %}
+          <span class="badge {{ 'bg-success-subtle text-success' if v_status == 'verified' else ('bg-primary-subtle text-primary' if v_status == 'shortlisted' else 'bg-warning-subtle text-warning') }}">
+            {{ v_status|capitalize }}
+          </span>
+        </div>
+        <div class="small text-muted">{{ submission.roll_number }} &bull; {{ submission.department }} &bull; {{ form.title }}</div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('forms_mgr.edit_submission', form_id=form.id, submission_id=submission.id) }}" class="btn btn-sm btn-primary">
+        <i class="bi bi-pencil-square me-1"></i> Edit Data & Remarks
+      </a>
+      <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-printer me-1"></i> Print / PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left: Score Summary & Breakdown -->
+    <div class="col-lg-5">
+      <!-- Big Score Card -->
+      <div class="card card-modern p-4 mb-4 text-center">
+        <div class="d-inline-flex justify-content-center align-items-center mb-3">
+          {% if score and score.rank %}
+            <span class="badge {{ 'bg-warning text-dark' if score.rank == 1 else ('bg-secondary text-white' if score.rank == 2 else ('bg-warning-subtle text-warning' if score.rank == 3 else 'bg-primary-subtle text-primary')) }} fs-6 px-3 py-2 rounded-pill font-monospace">
+              Cohort Rank #{{ score.rank }}
+            </span>
+          {% endif %}
+        </div>
+
+        <div class="display-3 fw-extrabold text-primary mb-1">
+          {{ score.total_score if score else '—' }}
+        </div>
+        <div class="text-secondary small fw-bold text-uppercase mb-3">Total Performance Score (Out of 100)</div>
+
+        <div class="row g-2 text-center pt-3 border-top">
+          <div class="col-4">
+            <div class="small text-muted">Percentile</div>
+            <div class="fw-bold fs-5">{{ score.percentile if score else '0' }}%</div>
+          </div>
+          <div class="col-4">
+            <div class="small text-muted">Grade</div>
+            <div class="fw-bold fs-5 text-success">{{ score.grade if score else 'N/A' }}</div>
+          </div>
+          <div class="col-4">
+            <div class="small text-muted">CGPA</div>
+            <div class="fw-bold fs-5">{{ submission.cgpa }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Itemized Formula Breakdown -->
+      {% if score and score.breakdown_json %}
+      <div class="card card-modern p-4">
+        <h6 class="fw-bold mb-3"><i class="bi bi-calculator-fill text-primary me-2"></i> Scoring Metric Breakdown</h6>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle small mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Metric</th>
+                <th>Raw Value</th>
+                <th class="text-end">Earned Marks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for k, item in score.breakdown_json.items() %}
+              <tr>
+                <td>{{ item.label }}</td>
+                <td class="font-monospace text-muted">{{ item.raw_value }}</td>
+                <td class="text-end fw-bold {{ 'text-danger' if item.category == 'penalty' else 'text-success' }}">
+                  {% if item.category == 'penalty' %}
+                    -{{ item.deduction }}
+                  {% else %}
+                    +{{ item.earned }}
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right: Extracted Coding Profiles -->
+    <div class="col-lg-7">
+      <div class="card card-modern p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-cpu text-primary me-2"></i> Verified Coding Platform Statistics</h5>
+
+        <div class="row g-3">
+          {% for prof in profiles %}
+          <div class="col-md-6">
+            <div class="card bg-body-tertiary border p-3 rounded-3 h-100">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="fw-bold text-uppercase small">
+                  {% if prof.platform_name == 'leetcode' %}
+                    <i class="bi bi-code-slash text-warning me-1"></i> LeetCode
+                  {% elif prof.platform_name == 'codechef' %}
+                    <i class="bi bi-fire text-danger me-1"></i> CodeChef
+                  {% elif prof.platform_name == 'codeforces' %}
+                    <i class="bi bi-lightning-charge text-primary me-1"></i> Codeforces
+                  {% elif prof.platform_name == 'github' %}
+                    <i class="bi bi-github me-1"></i> GitHub
+                  {% elif prof.platform_name == 'hackerrank' %}
+                    <i class="bi bi-check-all text-success me-1"></i> HackerRank
+                  {% elif prof.platform_name in ('gfg', 'geeksforgeeks') %}
+                    <i class="bi bi-terminal text-success me-1"></i> GeeksforGeeks
+                  {% elif prof.platform_name == 'atcoder' %}
+                    <i class="bi bi-diagram-3 text-secondary me-1"></i> AtCoder
+                  {% elif prof.platform_name == 'interviewbit' %}
+                    <i class="bi bi-bullseye text-primary me-1"></i> InterviewBit
+                  {% elif prof.platform_name == 'kaggle' %}
+                    <i class="bi bi-trophy text-info me-1"></i> Kaggle
+                  {% else %}
+                    {{ prof.platform_name|title }}
+                  {% endif %}
+                </div>
+                <span class="badge {{ 'bg-success-subtle text-success' if prof.extraction_status == 'success' else 'bg-info-subtle text-info' }} small">
+                  {{ prof.extraction_status }}
+                </span>
+              </div>
+
+              <div class="font-monospace small mb-2 text-truncate">
+                <a href="{{ prof.profile_url or '#' }}" target="_blank" class="text-decoration-none">
+                  {{ prof.username }} <i class="bi bi-box-arrow-up-right small"></i>
+                </a>
+              </div>
+
+              {% set raw = prof.raw_data or {} %}
+              <div class="small d-flex flex-column gap-1">
+                {% if prof.platform_name == 'leetcode' %}
+                  <div class="d-flex justify-content-between"><span>Total Solved:</span><strong>{{ prof.problems_solved }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Contest Rating:</span><strong>{{ prof.contest_rating }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Global Rank:</span><strong>#{{ prof.global_rank }}</strong></div>
+                {% elif prof.platform_name == 'codechef' %}
+                  <div class="d-flex justify-content-between"><span>Rating:</span><strong>{{ prof.contest_rating|int }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Stars:</span><strong>{{ prof.stars_or_badges }}★</strong></div>
+                  <div class="d-flex justify-content-between"><span>Problems Solved:</span><strong>{{ prof.problems_solved }}</strong></div>
+                {% elif prof.platform_name == 'codeforces' %}
+                  <div class="d-flex justify-content-between"><span>Rating:</span><strong>{{ prof.contest_rating|int }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Rank Title:</span><strong class="text-capitalize">{{ raw.get('rank', 'unrated') }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Max Rating:</span><strong>{{ raw.get('max_rating', 0) }}</strong></div>
+                {% elif prof.platform_name == 'github' %}
+                  <div class="d-flex justify-content-between"><span>Public Repos:</span><strong>{{ prof.problems_solved }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Stars Earned:</span><strong>{{ raw.get('stars_earned', 0) }}★</strong></div>
+                  <div class="d-flex justify-content-between"><span>Followers:</span><strong>{{ raw.get('followers', 0) }}</strong></div>
+                {% elif prof.platform_name == 'hackerrank' %}
+                  <div class="d-flex justify-content-between"><span>Badges Earned:</span><strong>{{ prof.stars_or_badges }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Problems Solved:</span><strong>{{ prof.problems_solved }}</strong></div>
+                {% elif prof.platform_name in ('gfg', 'geeksforgeeks') %}
+                  <div class="d-flex justify-content-between"><span>Coding Score:</span><strong>{{ raw.get('coding_score', prof.problems_solved) }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Problems Solved:</span><strong>{{ prof.problems_solved }}</strong></div>
+                {% elif prof.platform_name == 'atcoder' %}
+                  <div class="d-flex justify-content-between"><span>Contest Rating:</span><strong>{{ prof.contest_rating|int }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Highest Rating:</span><strong>{{ prof.highest_rating|int }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Tier:</span><strong class="text-capitalize">{{ raw.get('tier_color', 'White') }}</strong></div>
+                {% elif prof.platform_name == 'interviewbit' %}
+                  <div class="d-flex justify-content-between"><span>Score:</span><strong>{{ prof.contest_rating|int }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Problems Solved:</span><strong>{{ prof.problems_solved }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Daily Streak:</span><strong>{{ raw.get('streak_days', 0) }} days</strong></div>
+                {% elif prof.platform_name == 'kaggle' %}
+                  <div class="d-flex justify-content-between"><span>Tier:</span><strong class="text-capitalize">{{ raw.get('tier', 'Contributor') }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Total Medals:</span><strong>{{ prof.stars_or_badges }} medals</strong></div>
+                  <div class="d-flex justify-content-between"><span>Notebooks:</span><strong>{{ raw.get('notebooks_count', 0) }}</strong></div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Faculty Moderation & Remarks Note -->
+      {% if submission.teacher_remarks or submission.manual_score_adjustment %}
+      <div class="card card-modern p-4 mb-4 border-info">
+        <h5 class="fw-bold mb-2 text-info"><i class="bi bi-chat-quote-fill me-2"></i> Faculty Evaluation Notes</h5>
+        {% if submission.teacher_remarks %}
+          <p class="mb-2 text-secondary">{{ submission.teacher_remarks }}</p>
+        {% endif %}
+        {% if submission.manual_score_adjustment and submission.manual_score_adjustment != 0.0 %}
+          <div class="small"><strong>Manual Score Adjustment:</strong> <span class="badge {{ 'bg-success' if submission.manual_score_adjustment > 0 else 'bg-danger' }}">{{ submission.manual_score_adjustment }} marks</span></div>
+        {% endif %}
+        {% if submission.last_modified_by %}
+          <div class="small text-muted mt-2">Last modified by: {{ submission.last_modified_by }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Raw Form Values -->
+      <div class="card card-modern p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-file-earmark-text text-secondary me-2"></i> All Submission Responses</h5>
+        <div class="table-responsive">
+          <table class="table table-sm small mb-0">
+            <tbody>
+              {% for val in values %}
+              <tr>
+                <td class="fw-bold text-secondary" style="width: 40%;">{{ val.field.label if val.field else 'Field' }}</td>
+                <td class="font-monospace text-break">{{ val.value_text or val.file_path or '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

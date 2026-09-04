@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Public Leaderboard Directory — SSVS{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="text-center mb-5">
+    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-warning-subtle text-warning-emphasis fw-semibold small mb-3">
+      <i class="bi bi-trophy-fill text-warning"></i> Public Assessment Leaderboards
+    </div>
+    <h1 class="fw-extrabold display-5 mb-3">Search Academic & Coding Leaderboards</h1>
+    <p class="text-secondary mx-auto" style="max-width: 600px;">
+      Explore public placement drives, coding evaluations, and hackathon leaderboards across engineering colleges.
+    </p>
+
+    <!-- Search Form -->
+    <div class="card card-glass p-3 shadow-sm mx-auto mt-4" style="max-width: 680px;">
+      <form method="GET" action="{{ url_for('student.public_leaderboard_search') }}" class="row g-2">
+        <div class="col-md-7">
+          <div class="input-group">
+            <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-search text-secondary"></i></span>
+            <input type="text" name="q" class="form-control border-start-0" placeholder="Search by assessment name..." value="{{ query }}">
+          </div>
+        </div>
+        <div class="col-md-5">
+          <button type="submit" class="btn btn-primary-gradient w-100">
+            Search Leaderboards
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Results List -->
+  <div class="row g-4 justify-content-center">
+    {% if forms %}
+      {% for f in forms %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card card-modern h-100 p-4 d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge bg-primary-subtle text-primary small">
+              <i class="bi bi-mortarboard me-1"></i> {{ f.teacher.department }}
+            </span>
+            <span class="badge bg-success-subtle text-success small">
+              <i class="bi bi-people-fill me-1"></i> {{ f.submission_count }} Coders
+            </span>
+          </div>
+
+          <h5 class="fw-bold mb-1">{{ f.title }}</h5>
+          <div class="small text-muted mb-3">{{ f.teacher.college_name }} &bull; {{ f.teacher.full_name }}</div>
+
+          <p class="text-secondary small mb-4 flex-grow-1 text-truncate-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+            {{ f.description or 'Official competitive coding and academic placement evaluation drive.' }}
+          </p>
+
+          <div class="d-flex gap-2 border-top pt-3">
+            <a href="{{ url_for('student.view_leaderboard', slug=f.slug) }}" class="btn btn-primary-gradient btn-sm flex-grow-1">
+              <i class="bi bi-trophy-fill text-warning me-1"></i> View Leaderboard
+            </a>
+            {% if f.is_open %}
+            <a href="{{ url_for('student.view_form', slug=f.slug) }}" class="btn btn-outline-secondary btn-sm" title="Submit Assessment">
+              <i class="bi bi-box-arrow-up-right"></i>
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="col-md-6 text-center py-5">
+        <i class="bi bi-search display-3 text-secondary mb-3 d-block"></i>
+        <h4 class="fw-bold">No Leaderboards Found</h4>
+        <p class="text-secondary small">Try searching with a different keyword or assessment title.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Form Builder — {{ form.title }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+  <!-- Top Bar -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 pb-3 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('forms_mgr.list_forms') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h4 class="fw-bold mb-0 text-truncate" style="max-width: 500px;">{{ form.title }}</h4>
+        <div class="small text-muted">Visual Form Builder &bull; Drag or click palette items to add fields</div>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('forms_mgr.settings', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-gear me-1"></i> Settings
+      </a>
+      <a href="{{ url_for('forms_mgr.formula_builder', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-sliders me-1"></i> Score Formula
+      </a>
+      <a href="{{ url_for('student.view_form', slug=form.slug) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-eye me-1"></i> Preview Form
+      </a>
+      <button class="btn btn-sm btn-primary-gradient px-3" id="save-builder-btn">
+        <i class="bi bi-cloud-check me-1"></i> Save Form Changes
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Left: Field Palette -->
+    <div class="col-lg-3">
+      <div class="card card-modern p-3">
+        <h6 class="fw-bold mb-3"><i class="bi bi-grid-fill text-primary me-2"></i> Field Palette</h6>
+
+        <div class="text-secondary small fw-bold text-uppercase mb-2">Coding Profiles & Academics</div>
+        <div class="d-flex flex-column gap-2 mb-3">
+          <button type="button" class="field-draggable-item" data-add-type="url" data-default-label="LeetCode Profile URL" data-binding="leetcode_handle">
+            <i class="bi bi-code-slash text-warning"></i> LeetCode Profile
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="url" data-default-label="CodeChef Profile URL" data-binding="codechef_handle">
+            <i class="bi bi-fire text-danger"></i> CodeChef Profile
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="text" data-default-label="Codeforces Handle" data-binding="codeforces_handle">
+            <i class="bi bi-lightning-charge text-primary"></i> Codeforces Handle
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="url" data-default-label="GitHub Profile URL" data-binding="github_handle">
+            <i class="bi bi-github text-dark"></i> GitHub Profile
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="url" data-default-label="HackerRank Profile URL" data-binding="hackerrank_handle">
+            <i class="bi bi-check-all text-success"></i> HackerRank Profile
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="url" data-default-label="AtCoder Profile URL" data-binding="atcoder_handle">
+            <i class="bi bi-diagram-3 text-secondary"></i> AtCoder Profile
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="url" data-default-label="InterviewBit Profile URL" data-binding="interviewbit_handle">
+            <i class="bi bi-bullseye text-primary"></i> InterviewBit Profile
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="url" data-default-label="Kaggle Profile URL" data-binding="kaggle_handle">
+            <i class="bi bi-trophy text-info"></i> Kaggle Profile
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="decimal" data-default-label="Current CGPA (Out of 10)" data-binding="cgpa">
+            <i class="bi bi-mortarboard text-info"></i> Academic CGPA
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="number" data-default-label="Active Backlogs" data-binding="backlogs">
+            <i class="bi bi-exclamation-triangle text-danger"></i> Backlogs Count
+          </button>
+        </div>
+
+        <div class="text-secondary small fw-bold text-uppercase mb-2">Standard Inputs</div>
+        <div class="d-flex flex-column gap-2 mb-3">
+          <button type="button" class="field-draggable-item" data-add-type="text" data-default-label="Single Line Text">
+            <i class="bi bi-fonts"></i> Text Input
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="textarea" data-default-label="Paragraph Response">
+            <i class="bi bi-textarea-resize"></i> Multi-line Textarea
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="email" data-default-label="Email Address" data-binding="email">
+            <i class="bi bi-envelope"></i> Email Field
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="dropdown" data-default-label="Dropdown Selection">
+            <i class="bi bi-chevron-down"></i> Dropdown Select
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="file" data-default-label="Upload Resume / Document">
+            <i class="bi bi-upload"></i> File Upload (Resume)
+          </button>
+          <button type="button" class="field-draggable-item" data-add-type="section_divider" data-default-label="New Section Heading">
+            <i class="bi bi-hr"></i> Section Divider
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: Live Canvas -->
+    <div class="col-lg-6">
+      <div class="builder-canvas shadow-sm" id="builder-canvas">
+        <!-- Injected dynamically by FormBuilder JS -->
+      </div>
+    </div>
+
+    <!-- Right: Field Inspector Settings Drawer -->
+    <div class="col-lg-3">
+      <div class="card card-modern" id="field-inspector">
+        <!-- Injected dynamically when a field is selected -->
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/form-builder.js') }}"></script>
+<script>
+  // Initialize FormBuilder with initial field schema from server
+  const initialFields = {{ fields_data|tojson }};
+  const builder = new FormBuilder({{ form.id }}, initialFields);
+</script>
+{% endblock %}

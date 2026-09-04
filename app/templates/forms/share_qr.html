@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Share Assessment & QR Code — {{ form.title }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+    <a href="{{ url_for('forms_mgr.list_forms') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <div>
+      <h3 class="fw-bold mb-0">Share Assessment Form & QR Code</h3>
+      <div class="small text-muted">{{ form.title }}</div>
+    </div>
+  </div>
+
+  <div class="row g-4 justify-content-center">
+    <!-- QR Code Display Card -->
+    <div class="col-md-5 text-center">
+      <div class="card card-modern p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-qr-code text-primary me-2"></i> Instant Classroom QR</h5>
+        <p class="small text-secondary mb-4">Project this on your classroom screen or print for students to scan.</p>
+
+        <div class="p-3 bg-white d-inline-block rounded-3 shadow-sm border mb-3">
+          <img src="{{ qr_data_uri }}" alt="Assessment QR Code" class="img-fluid" style="width: 240px; height: 240px;">
+        </div>
+
+        <div class="d-flex justify-content-center gap-2">
+          <a href="{{ qr_data_uri }}" download="SSVS_QR_{{ form.slug }}.png" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-download me-1"></i> Download PNG
+          </a>
+          <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> Print Poster
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Links & Channels -->
+    <div class="col-md-7">
+      <div class="card card-modern p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-link-45deg text-primary me-2"></i> Student Submission Link</h5>
+        <div class="input-group mb-3">
+          <input type="text" class="form-control font-monospace small" id="public-url-input" value="{{ public_url }}" readonly>
+          <button class="btn btn-primary" data-copy="{{ public_url }}">
+            <i class="bi bi-copy me-1"></i> Copy Link
+          </button>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ public_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-box-arrow-up-right me-1"></i> Open Student Form
+          </a>
+          <a href="https://api.whatsapp.com/send?text=Please%20fill%20your%20assessment%20form%20for%20{{ form.title }}:%20{{ public_url }}" target="_blank" class="btn btn-sm btn-success">
+            <i class="bi bi-whatsapp me-1"></i> Share via WhatsApp
+          </a>
+        </div>
+      </div>
+
+      <div class="card card-modern p-4 mb-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-trophy text-warning me-2"></i> Public Leaderboard Link</h5>
+        <p class="small text-secondary mb-2">Share this link with students and recruiters to view live rankings.</p>
+        <div class="input-group mb-3">
+          <input type="text" class="form-control font-monospace small" value="{{ leaderboard_url }}" readonly>
+          <button class="btn btn-outline-secondary" data-copy="{{ leaderboard_url }}">
+            <i class="bi bi-copy me-1"></i> Copy
+          </button>
+        </div>
+        <div>
+          <a href="{{ leaderboard_url }}" target="_blank" class="btn btn-sm btn-outline-warning">
+            <i class="bi bi-eye me-1"></i> Preview Public Leaderboard
+          </a>
+        </div>
+      </div>
+
+      <div class="card card-modern p-4">
+        <h6 class="fw-bold mb-2"><i class="bi bi-code-slash text-secondary me-2"></i> Embed on College Portal</h6>
+        <div class="p-2 rounded bg-body-tertiary font-monospace small text-secondary">
+          &lt;iframe src="{{ public_url }}" width="100%" height="800" frameborder="0"&gt;&lt;/iframe&gt;
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

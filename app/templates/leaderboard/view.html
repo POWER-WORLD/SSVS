@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Live Leaderboard — {{ form.title }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+  <!-- Header Banner -->
+  <div class="text-center py-4">
+    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-warning-subtle text-warning-emphasis fw-bold small mb-2 shadow-sm">
+      <i class="bi bi-trophy-fill text-warning"></i> OFFICIAL LIVE LEADERBOARD
+    </div>
+    <h2 class="display-6 fw-extrabold mb-1">{{ form.title }}</h2>
+    <p class="text-secondary small mb-0">
+      {{ form.teacher.college_name }} &bull; {{ form.teacher.department }} &bull; Evaluator: {{ form.teacher.full_name }}
+    </p>
+  </div>
+
+  <!-- Podium Section for Top 3 Performers -->
+  {% if podium.first %}
+  <div class="podium-container">
+    <!-- Rank 2: Silver -->
+    {% if podium.second %}
+    <div class="podium-card podium-2 shadow-sm">
+      <div class="medal-badge medal-silver mx-auto">
+        <i class="bi bi-award-fill"></i>
+      </div>
+      <span class="badge bg-secondary text-white font-monospace mb-1">Rank #2</span>
+      <h6 class="fw-bold mb-1 text-truncate">{{ podium.second.student_name }}</h6>
+      <div class="font-monospace small text-muted mb-2">{{ podium.second.roll_number }}</div>
+      <div class="display-6 fw-extrabold text-secondary mb-1">{{ podium.second.total_score }}</div>
+      <div class="small text-muted">{{ podium.second.department }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Rank 1: Gold Winner -->
+    <div class="podium-card podium-1 shadow-lg pulse-glow">
+      <div class="medal-badge medal-gold mx-auto">
+        <i class="bi bi-trophy-fill"></i>
+      </div>
+      <span class="badge bg-warning text-dark fw-bold font-monospace mb-1">Rank #1 Champion</span>
+      <h5 class="fw-bold mb-1 text-truncate">{{ podium.first.student_name }}</h5>
+      <div class="font-monospace small text-muted mb-2">{{ podium.first.roll_number }}</div>
+      <div class="display-5 fw-extrabold text-primary mb-1">{{ podium.first.total_score }}</div>
+      <div class="small fw-semibold text-success">{{ podium.first.percentile }}th Percentile</div>
+      <div class="small text-muted">{{ podium.first.department }}</div>
+    </div>
+
+    <!-- Rank 3: Bronze -->
+    {% if podium.third %}
+    <div class="podium-card podium-3 shadow-sm">
+      <div class="medal-badge medal-bronze mx-auto">
+        <i class="bi bi-award-fill"></i>
+      </div>
+      <span class="badge bg-warning-subtle text-warning-emphasis font-monospace mb-1">Rank #3</span>
+      <h6 class="fw-bold mb-1 text-truncate">{{ podium.third.student_name }}</h6>
+      <div class="font-monospace small text-muted mb-2">{{ podium.third.roll_number }}</div>
+      <div class="display-6 fw-extrabold text-secondary mb-1">{{ podium.third.total_score }}</div>
+      <div class="small text-muted">{{ podium.third.department }}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Leaderboard Controls & Filters -->
+  <div class="card card-modern p-3 mb-4">
+    <form method="GET" class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Search student name or roll number..." value="{{ search_q }}">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <select name="dept" class="form-select form-select-sm">
+          <option value="">-- All Departments ({{ entries|length }}) --</option>
+          {% for dept in departments %}
+          <option value="{{ dept }}" {{ 'selected' if current_dept == dept else '' }}>{{ dept }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary flex-grow-1">Apply Filter</button>
+        <a href="{{ url_for('student.view_leaderboard', slug=form.slug) }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Leaderboard Table -->
+  <div class="card card-modern p-4">
+    {% if entries %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small text-uppercase">
+          <tr>
+            <th style="width: 80px;">Rank</th>
+            <th>Candidate</th>
+            <th>Roll Number</th>
+            <th>Department</th>
+            <th>CGPA</th>
+            <th>Coding Index</th>
+            <th>GitHub Index</th>
+            <th>Badges</th>
+            <th>Total Score</th>
+            <th>Percentile</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in entries %}
+          <tr class="cursor-pointer" style="cursor: pointer;" onclick="openStudentModal('{{ e.student_name }}', '{{ e.roll_number }}', '{{ e.department }}', '{{ e.total_score }}', '{{ e.cgpa }}', '{{ e.coding_score }}', '{{ e.github_score }}', '{{ e.percentile }}', '{{ e.rank }}')">
+            <td>
+              {% if e.rank == 1 %}
+                <span class="badge bg-warning text-dark fs-6 px-2 py-1"><i class="bi bi-trophy-fill"></i> #1</span>
+              {% elif e.rank == 2 %}
+                <span class="badge bg-secondary text-white fs-6 px-2 py-1">#2</span>
+              {% elif e.rank == 3 %}
+                <span class="badge bg-warning-subtle text-warning fs-6 px-2 py-1">#3</span>
+              {% else %}
+                <span class="font-monospace fw-bold text-secondary">#{{ e.rank }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="fw-bold">{{ e.student_name }}</div>
+            </td>
+            <td class="font-monospace small fw-semibold">{{ e.roll_number }}</td>
+            <td class="small">{{ e.department or 'N/A' }}</td>
+            <td>
+              <span class="badge bg-info-subtle text-info fw-bold">{{ e.cgpa }}</span>
+            </td>
+            <td>
+              <span class="fw-bold text-success">{{ e.coding_score }}</span>
+            </td>
+            <td>
+              <span class="fw-bold text-dark">{{ e.github_score }}</span>
+            </td>
+            <td>
+              <span class="badge bg-secondary-subtle text-secondary small">
+                <i class="bi bi-star-fill text-warning me-1"></i> {{ e.badge_count }}
+              </span>
+            </td>
+            <td>
+              <span class="fw-extrabold fs-6 text-primary">{{ e.total_score }}</span>
+            </td>
+            <td>
+              <span class="badge bg-success-subtle text-success small">{{ e.percentile }}%</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-trophy display-4 d-block mb-3 text-secondary"></i>
+      <h5>No Leaderboard Entries Match Your Filter</h5>
+      <p class="small">Try resetting your search query or selecting all departments.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal: Student Breakdown -->
+<div class="modal fade" id="studentDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content card-modern border-0">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold" id="m-name">Candidate Breakdown</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <span class="badge bg-warning text-dark font-monospace fs-6 mb-2" id="m-rank">Rank #1</span>
+        <div class="display-4 fw-extrabold text-primary mb-1" id="m-score">94.5</div>
+        <div class="text-secondary small fw-bold text-uppercase mb-3">Overall Performance Score</div>
+
+        <div class="row g-2 text-center p-3 bg-body-tertiary rounded-3 mb-3">
+          <div class="col-4">
+            <div class="small text-muted">CGPA</div>
+            <div class="fw-bold fs-5" id="m-cgpa">9.5</div>
+          </div>
+          <div class="col-4">
+            <div class="small text-muted">Coding Score</div>
+            <div class="fw-bold fs-5 text-success" id="m-coding">55.0</div>
+          </div>
+          <div class="col-4">
+            <div class="small text-muted">GitHub Score</div>
+            <div class="fw-bold fs-5 text-dark" id="m-github">15.0</div>
+          </div>
+        </div>
+
+        <div class="small text-muted mb-2">
+          <span id="m-roll"></span> &bull; <span id="m-dept"></span> &bull; <span id="m-pct"></span> Percentile
+        </div>
+      </div>
+      <div class="modal-footer border-top">
+        <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function openStudentModal(name, roll, dept, score, cgpa, coding, github, pct, rank) {
+    document.getElementById('m-name').textContent = name;
+    document.getElementById('m-roll').textContent = roll;
+    document.getElementById('m-dept').textContent = dept;
+    document.getElementById('m-score').textContent = score;
+    document.getElementById('m-cgpa').textContent = cgpa;
+    document.getElementById('m-coding').textContent = coding;
+    document.getElementById('m-github').textContent = github;
+    document.getElementById('m-pct').textContent = pct + 'th';
+    document.getElementById('m-rank').textContent = 'Cohort Rank #' + rank;
+    
+    const modal = new bootstrap.Modal(document.getElementById('studentDetailModal'));
+    modal.show();
+  }
+</script>
+{% endblock %}

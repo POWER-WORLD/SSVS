@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Profile — SSVS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row g-4">
+    <!-- Left: Profile Form -->
+    <div class="col-lg-7">
+      <div class="card card-modern p-4">
+        <h4 class="fw-bold mb-3"><i class="bi bi-person-gear text-primary me-2"></i> Faculty Profile</h4>
+        <form method="POST" action="{{ url_for('auth.profile') }}">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Full Name</label>
+            {{ form.full_name(class="form-control form-control-modern") }}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">College / University Name</label>
+            {{ form.college_name(class="form-control form-control-modern") }}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Department</label>
+              {{ form.department(class="form-control form-control-modern") }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Designation</label>
+              {{ form.designation(class="form-control form-control-modern") }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Phone Number</label>
+            {{ form.phone(class="form-control form-control-modern") }}
+          </div>
+
+          <button type="submit" class="btn btn-primary-gradient px-4">
+            <i class="bi bi-save me-1"></i> Save Changes
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right: Audit Logs -->
+    <div class="col-lg-5">
+      <div class="card card-modern p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-clock-history text-secondary me-2"></i> Recent Activity Logs</h5>
+        {% if logs %}
+        <div class="list-group list-group-flush">
+          {% for log in logs %}
+          <div class="list-group-item px-0 py-2 border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="badge bg-secondary-subtle text-secondary small font-monospace">{{ log.action }}</span>
+              <span class="small text-muted">{{ log.created_at.strftime('%b %d, %H:%M') }}</span>
+            </div>
+            <div class="small text-secondary mt-1">{{ log.description }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted small">No activity recorded yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

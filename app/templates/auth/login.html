@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Instructor Login — SSVS{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <div class="card card-glass p-4 p-md-5 shadow-lg">
+        <div class="text-center mb-4">
+          <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3 shadow" style="width: 56px; height: 56px; font-size: 1.5rem;">
+            <i class="bi bi-person-fill-lock"></i>
+          </div>
+          <h3 class="fw-bold mb-1">Faculty & Recruiter Portal</h3>
+          <p class="text-secondary small">Sign in to manage assessments, score rules, and analytics.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.login') }}">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold" for="email">Institutional Email</label>
+            <div class="input-group">
+              <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-envelope text-secondary"></i></span>
+              {{ form.email(class="form-control form-control-modern border-start-0", placeholder="name@college.edu", id="email-field") }}
+            </div>
+            {% for error in form.email.errors %}
+              <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <label class="form-label small fw-bold" for="password">Password</label>
+              <a href="{{ url_for('auth.forgot_password') }}" class="small text-decoration-none">Forgot password?</a>
+            </div>
+            <div class="input-group">
+              <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-key text-secondary"></i></span>
+              {{ form.password(class="form-control form-control-modern border-start-0", placeholder="••••••••", id="password-field") }}
+            </div>
+            {% for error in form.password.errors %}
+              <div class="text-danger small mt-1">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-4 form-check">
+            {{ form.remember(class="form-check-input") }}
+            <label class="form-check-label small" for="remember">Keep me signed in on this device</label>
+          </div>
+
+          <button type="submit" class="btn btn-primary-gradient w-100 py-2 fs-6">
+            <i class="bi bi-box-arrow-in-right me-2"></i> Sign In to Portal
+          </button>
+        </form>
+
+        <div class="text-center mt-4 small text-secondary">
+          Don't have a faculty account? <a href="{{ url_for('auth.register') }}" class="fw-bold">Register here</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

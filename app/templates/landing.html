@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}SSVS — Student Score View System | Enterprise Academic & Coding Evaluation Platform{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-5">
+  <!-- Hero Section -->
+  <div class="row align-items-center justify-content-center py-5">
+    <div class="col-lg-8 text-center">
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-primary-subtle text-primary fw-semibold small mb-4">
+        <span class="badge bg-primary rounded-pill">NEW</span> Enterprise Academic & Coding Evaluation
+      </div>
+      <h1 class="display-4 fw-extrabold mb-4 lh-sm">
+        Assess Student Coding Profiles.<br>
+        <span class="text-primary">Instant Automated Intelligence.</span>
+      </h1>
+      <p class="lead text-secondary mb-5 mx-auto" style="max-width: 720px;">
+        Combine the flexibility of <strong>Google Forms</strong> with the depth of <strong>LeetCode Analytics</strong> and <strong>HackerRank Dashboards</strong>. Faculty create dynamic forms; students submit without accounts; scores and live leaderboards are generated automatically.
+      </p>
+
+      <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('dashboard.overview') }}" class="btn btn-lg btn-primary-gradient px-4 py-3">
+          <i class="bi bi-speedometer2 me-2"></i> Go to Faculty Dashboard
+        </a>
+        {% else %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-lg btn-primary-gradient px-4 py-3">
+          <i class="bi bi-person-badge-fill me-2"></i> Teacher & Admin Login
+        </a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-lg btn-outline-secondary px-4 py-3">
+          Create Free Account
+        </a>
+        {% endif %}
+        <a href="{{ url_for('student.public_leaderboard_search') }}" class="btn btn-lg btn-soft px-4 py-3">
+          <i class="bi bi-trophy-fill text-warning me-2"></i> View Live Leaderboards
+        </a>
+      </div>
+
+      <!-- Quick Demo Access Box -->
+      <div class="card card-glass p-4 text-start shadow-sm mx-auto" style="max-width: 780px;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success fw-bold">LIVE COHORT PREVIEW</span>
+            <span class="small text-muted">IIT Delhi CSE 2026 Batch</span>
+          </div>
+          <span class="badge bg-primary-subtle text-primary">25 Submissions Evaluated</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+          <div class="small">
+            <strong>Sample Assessment:</strong> Campus Placement 2026 — Technical Evaluation
+          </div>
+          <div class="d-flex gap-2">
+            <a href="/f/iitd-cse-placement-2026" class="btn btn-sm btn-outline-primary" target="_blank">
+              <i class="bi bi-box-arrow-up-right me-1"></i> Student Form
+            </a>
+            <a href="/leaderboard/iitd-cse-placement-2026" class="btn btn-sm btn-primary-gradient">
+              <i class="bi bi-trophy me-1"></i> Live Leaderboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Value Pillars -->
+  <div class="row g-4 py-5">
+    <div class="col-md-4">
+      <div class="card card-modern h-100 p-4">
+        <div class="rounded-3 bg-primary-subtle text-primary d-inline-flex p-3 fs-3 mb-3" style="width: 54px; height: 54px; align-items: center; justify-content: center;">
+          <i class="bi bi-magic"></i>
+        </div>
+        <h4 class="fw-bold mb-2">Automated Extraction</h4>
+        <p class="text-secondary small mb-0">
+          No manual copy-pasting. SSVS automatically extracts problems solved, contest ratings, streaks, and stars from LeetCode, CodeChef, Codeforces, and GitHub.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card card-modern h-100 p-4">
+        <div class="rounded-3 bg-success-subtle text-success d-inline-flex p-3 fs-3 mb-3" style="width: 54px; height: 54px; align-items: center; justify-content: center;">
+          <i class="bi bi-sliders"></i>
+        </div>
+        <h4 class="fw-bold mb-2">Intelligent Formula Scoring</h4>
+        <p class="text-secondary small mb-0">
+          Build custom evaluation rules visually. Adjust weights between CGPA, LeetCode, CodeChef, and GitHub, define backlog penalty deductions, and normalize cohort scores.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card card-modern h-100 p-4">
+        <div class="rounded-3 bg-warning-subtle text-warning d-inline-flex p-3 fs-3 mb-3" style="width: 54px; height: 54px; align-items: center; justify-content: center;">
+          <i class="bi bi-file-earmark-spreadsheet"></i>
+        </div>
+        <h4 class="fw-bold mb-2">Multi-Sheet Excel Reports</h4>
+        <p class="text-secondary small mb-0">
+          Export executive-grade workbooks with frozen headers, formatted rank podiums, raw responses, platform statistics, and cohort analytics with one click.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zero-Login Student Flow Showcase -->
+  <div class="card card-glass p-5 my-5">
+    <div class="row align-items-center">
+      <div class="col-lg-6">
+        <span class="badge bg-primary text-white mb-3">ZERO BARRIER WORKFLOW</span>
+        <h2 class="fw-bold mb-3">Students Never Need to Create an Account.</h2>
+        <p class="text-secondary mb-4">
+          Teachers publish an assessment and share the unique link or QR code. Students simply open the URL on phone or laptop, fill their academic information and profile handles, and submit.
+        </p>
+        <ul class="list-unstyled text-secondary small d-flex flex-column gap-2 mb-4">
+          <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Instant draft auto-saving in browser storage</li>
+          <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Duplicate roll number and email prevention</li>
+          <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Real-time multi-step extraction status tracker</li>
+          <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Instant placement on the public cohort leaderboard</li>
+        </ul>
+        <a href="{{ url_for('student.view_form', slug='iitd-cse-placement-2026') }}" class="btn btn-outline-primary fw-semibold">
+          Preview Student Experience <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+      <div class="col-lg-6 mt-4 mt-lg-0 text-center">
+        <div class="card card-modern p-4 border shadow-sm text-start">
+          <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <span class="fw-bold text-primary"><i class="bi bi-shield-check me-1"></i> Live Extraction Pipeline</span>
+            <span class="badge bg-success-subtle text-success">Async Worker Active</span>
+          </div>
+          <div class="small text-secondary mb-2"><strong>Target Student:</strong> Aarav Sharma (2022CSB101)</div>
+          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
+            <span>LeetCode: leetcode.com/u/aarav_algo</span>
+            <span class="text-success"><i class="bi bi-check2"></i> 480 Solved</span>
+          </div>
+          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
+            <span>CodeChef: codechef.com/users/aarav_cc</span>
+            <span class="text-success"><i class="bi bi-check2"></i> 1820 Rating (4★)</span>
+          </div>
+          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
+            <span>GitHub: github.com/aaravdev</span>
+            <span class="text-success"><i class="bi bi-check2"></i> 32 Repos | 48★</span>
+          </div>
+          <div class="p-2 rounded bg-primary-subtle text-primary fw-bold small d-flex justify-content-between mt-3">
+            <span>Calculated Score:</span>
+            <span>94.8 / 100 (Rank #1 Gold)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

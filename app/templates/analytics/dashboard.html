@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Cohort Analytics — {{ form.title }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+  <!-- Top Bar -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h3 class="fw-bold mb-0">Cohort Analytics & Visual Intelligence</h3>
+        <div class="small text-muted">{{ form.title }} &bull; {{ total_count }} Student Evaluations Analyzed</div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('analytics.export_excel', form_id=form.id) }}" class="btn btn-success d-flex align-items-center gap-2 fw-semibold">
+        <i class="bi bi-file-earmark-excel-fill"></i> Download Multi-Sheet Excel
+      </a>
+      <a href="{{ url_for('student.view_leaderboard', slug=form.slug) }}" target="_blank" class="btn btn-outline-warning d-flex align-items-center gap-2 fw-semibold">
+        <i class="bi bi-trophy-fill"></i> View Leaderboard
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-2">
+      <div class="card card-modern p-3 text-center">
+        <div class="text-secondary small fw-bold text-uppercase">Candidates</div>
+        <div class="fs-3 fw-extrabold text-primary">{{ total_count }}</div>
+        <div class="small text-muted">Evaluated</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="card card-modern p-3 text-center">
+        <div class="text-secondary small fw-bold text-uppercase">Mean Score</div>
+        <div class="fs-3 fw-extrabold">{{ avg_score }}</div>
+        <div class="small text-muted">Out of 100</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="card card-modern p-3 text-center">
+        <div class="text-secondary small fw-bold text-uppercase">Median Score</div>
+        <div class="fs-3 fw-extrabold">{{ median_score }}</div>
+        <div class="small text-muted">Cohort 50th %</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="card card-modern p-3 text-center">
+        <div class="text-secondary small fw-bold text-uppercase">Top Score</div>
+        <div class="fs-3 fw-extrabold text-warning">{{ highest_score }}</div>
+        <div class="small text-warning"><i class="bi bi-trophy-fill"></i> Gold Tier</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="card card-modern p-3 text-center">
+        <div class="text-secondary small fw-bold text-uppercase">Lowest Score</div>
+        <div class="fs-3 fw-extrabold text-danger">{{ lowest_score }}</div>
+        <div class="small text-muted">Benchmark Floor</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+      <div class="card card-modern p-3 text-center">
+        <div class="text-secondary small fw-bold text-uppercase">Average CGPA</div>
+        <div class="fs-3 fw-extrabold text-info">{{ avg_cgpa }}</div>
+        <div class="small text-muted">Scale of 10.0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="row g-4 mb-4">
+    <!-- Score Distribution Histogram -->
+    <div class="col-lg-7">
+      <div class="card card-modern p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill text-primary me-2"></i> Performance Score Distribution</h5>
+          <span class="badge bg-primary-subtle text-primary small">5 Score Tiers</span>
+        </div>
+        <div style="height: 280px;">
+          <canvas id="scoreHistogramChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Platform Participation Breakdown -->
+    <div class="col-lg-5">
+      <div class="card card-modern p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-pie-chart-fill text-warning me-2"></i> Platform Adoption</h5>
+          <span class="badge bg-warning-subtle text-warning small">Profile Distribution</span>
+        </div>
+        <div style="height: 280px;" class="d-flex align-items-center justify-content-center">
+          <canvas id="platformPieChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="row g-4 mb-4">
+    <!-- Top Coders Leaderboard -->
+    <div class="col-lg-6">
+      <div class="card card-modern p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-award-fill text-warning me-2"></i> Top 10 Performers</h5>
+          <span class="badge bg-success-subtle text-success small">Tier-1 Candidates</span>
+        </div>
+        <div style="height: 300px;">
+          <canvas id="topCodersChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Department Performance Comparison -->
+    <div class="col-lg-6">
+      <div class="card card-modern p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0"><i class="bi bi-diagram-3-fill text-info me-2"></i> Department Averages</h5>
+          <span class="badge bg-info-subtle text-info small">Cross-Branch Benchmark</span>
+        </div>
+        <div style="height: 300px;">
+          <canvas id="departmentChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // 1. Score Distribution Histogram
+    const ctxHisto = document.getElementById('scoreHistogramChart');
+    if (ctxHisto) {
+      new Chart(ctxHisto, {
+        type: 'bar',
+        data: {
+          labels: ['0-20 (Basic)', '21-40 (Novice)', '41-60 (Intermediate)', '61-80 (Advanced)', '81-100 (Master)'],
+          datasets: [{
+            label: 'Number of Students',
+            data: {{ histogram|tojson }},
+            backgroundColor: ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#10b981'],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        }
+      });
+    }
+
+    // 2. Platform Adoption Pie
+    const ctxPie = document.getElementById('platformPieChart');
+    if (ctxPie) {
+      new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys({{ platform_counts|tojson }}),
+          datasets: [{
+            data: Object.values({{ platform_counts|tojson }}),
+            backgroundColor: ['#f59e0b', '#dc2626', '#3b82f6', '#1e293b', '#10b981']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    // 3. Top Coders Horizontal Bar
+    const ctxTop = document.getElementById('topCodersChart');
+    if (ctxTop) {
+      new Chart(ctxTop, {
+        type: 'bar',
+        data: {
+          labels: {{ top_coder_names|tojson }},
+          datasets: [{
+            label: 'Performance Score',
+            data: {{ top_coder_scores|tojson }},
+            backgroundColor: '#4f46e5',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { max: 100, beginAtZero: true } }
+        }
+      });
+    }
+
+    // 4. Department Comparison Bar
+    const ctxDept = document.getElementById('departmentChart');
+    if (ctxDept) {
+      new Chart(ctxDept, {
+        type: 'bar',
+        data: {
+          labels: {{ dept_labels|tojson }},
+          datasets: [{
+            label: 'Average Score',
+            data: {{ dept_avgs|tojson }},
+            backgroundColor: '#0ea5e9',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { max: 100, beginAtZero: true } }
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

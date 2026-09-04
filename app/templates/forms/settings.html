@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Form Settings — {{ form.title }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+    <a href="{{ url_for('forms_mgr.list_forms') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <div>
+      <h3 class="fw-bold mb-0">Form Configuration & Publishing</h3>
+      <div class="small text-muted">{{ form.title }}</div>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card card-modern p-4">
+        <form method="POST" action="{{ url_for('forms_mgr.settings', form_id=form.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <h5 class="fw-bold mb-3"><i class="bi bi-card-text text-primary me-2"></i> General Information</h5>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Assessment Title</label>
+            <input type="text" name="title" class="form-control form-control-modern" value="{{ form.title }}" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Description</label>
+            <textarea name="description" class="form-control form-control-modern" rows="2">{{ form.description or '' }}</textarea>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label small fw-bold">Instructions for Students</label>
+            <textarea name="instructions" class="form-control form-control-modern" rows="3">{{ form.instructions or '' }}</textarea>
+          </div>
+
+          <h5 class="fw-bold mb-3 border-top pt-4"><i class="bi bi-shield-check text-primary me-2"></i> Access & Submission Controls</h5>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Submission Deadline (Optional)</label>
+              <input type="datetime-local" name="deadline" class="form-control form-control-modern" value="{{ form.deadline.strftime('%Y-%m-%dT%H:%M') if form.deadline else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Max Allowed Responses (Optional)</label>
+              <input type="number" name="max_responses" class="form-control form-control-modern" placeholder="Leave empty for unlimited" value="{{ form.max_responses or '' }}">
+            </div>
+          </div>
+
+          <div class="card bg-body-tertiary border-0 p-3 mb-4 rounded-3">
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="is_published" name="is_published" {{ 'checked' if form.is_published else '' }}>
+              <label class="form-check-label small fw-bold" for="is_published">
+                Published & Publicly Accessible
+              </label>
+              <div class="form-text small">When disabled, only instructors can preview the form.</div>
+            </div>
+
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="is_closed" name="is_closed" {{ 'checked' if form.is_closed else '' }}>
+              <label class="form-check-label small fw-bold" for="is_closed">
+                Close Form (Halt New Submissions)
+              </label>
+              <div class="form-text small">Students will see a "Form Closed" notice.</div>
+            </div>
+
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="one_per_roll" name="one_per_roll" {{ 'checked' if form.one_per_roll else '' }}>
+              <label class="form-check-label small fw-bold" for="one_per_roll">
+                Enforce Single Submission Per Roll Number
+              </label>
+            </div>
+
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" id="one_per_email" name="one_per_email" {{ 'checked' if form.one_per_email else '' }}>
+              <label class="form-check-label small fw-bold" for="one_per_email">
+                Enforce Single Submission Per Email
+              </label>
+            </div>
+
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="enable_leaderboard" name="enable_leaderboard" {{ 'checked' if form.enable_leaderboard else '' }}>
+              <label class="form-check-label small fw-bold" for="enable_leaderboard">
+                Enable Public Student Leaderboard
+              </label>
+              <div class="form-text small">Allows students to view live cohort rankings and podium medals.</div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <a href="{{ url_for('forms_mgr.builder', form_id=form.id) }}" class="btn btn-outline-secondary">
+              Back to Form Builder
+            </a>
+            <button type="submit" class="btn btn-primary-gradient px-4">
+              <i class="bi bi-check2-circle me-1"></i> Save Configuration
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

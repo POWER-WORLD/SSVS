@@ -1,0 +1,513 @@
+{% extends "base.html" %}
+
+{% block title %}Submissions — {{ form.title }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+  <!-- Top Navigation Bar -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('forms_mgr.list_forms') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h3 class="fw-bold mb-0">Cohort Submissions</h3>
+        <div class="small text-muted">{{ form.title }} &bull; {{ submissions|length }} candidates evaluated</div>
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <!-- Custom Excel Export Trigger -->
+      <button type="button" class="btn btn-success btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#customExcelModal">
+        <i class="bi bi-file-earmark-excel"></i> Custom Excel Export
+      </button>
+      <a href="{{ url_for('analytics.export_excel', form_id=form.id) }}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1" title="Download Standard Multi-Sheet Excel">
+        <i class="bi bi-download"></i> Full Report (.xlsx)
+      </a>
+      <a href="{{ url_for('student.view_leaderboard', slug=form.slug) }}" target="_blank" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-trophy-fill"></i> Public Leaderboard
+      </a>
+      <a href="{{ url_for('analytics.dashboard', form_id=form.id) }}" class="btn btn-primary-gradient btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-bar-chart-line"></i> Analytics Dashboard
+      </a>
+    </div>
+  </div>
+
+  <!-- Duplicate Profile / Roll Number Warning Banner -->
+  {% if duplicates and duplicates|length > 0 %}
+  <div class="alert alert-warning alert-dismissible fade show card-modern mb-4 border-warning" role="alert">
+    <div class="d-flex align-items-start gap-2">
+      <i class="bi bi-exclamation-triangle-fill fs-5 text-warning flex-shrink-0 mt-1"></i>
+      <div class="flex-grow-1">
+        <div class="fw-bold fs-6">Integrity Alert: Potential Duplicate Handles Detected ({{ duplicates|length }})</div>
+        <div class="small mb-2">Multiple students submitted identical platform handles or roll numbers. Review below:</div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for dup in duplicates %}
+          <div class="badge bg-warning-subtle text-dark border border-warning p-2 text-start">
+            <div class="fw-bold"><i class="bi bi-person-x-fill text-danger me-1"></i> {{ dup.handle }}</div>
+            <div class="small text-muted">
+              Shared by:
+              {% for st in dup.students %}
+                <a href="{{ url_for('forms_mgr.submission_detail', form_id=form.id, submission_id=st.id) }}" class="text-dark text-decoration-underline fw-semibold me-1">{{ st.name }} ({{ st.roll }})</a>{{ ', ' if not loop.last else '' }}
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Filters & Search Bar -->
+  <div class="card card-modern p-3 mb-4">
+    <form method="GET" class="row g-2 align-items-center">
+      <div class="col-md-4">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" name="q" class="form-control border-start-0" placeholder="Search candidate by name, roll, or email..." value="{{ request.args.get('q', '') }}">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <select name="department" class="form-select form-select-sm">
+          <option value="">-- All Departments --</option>
+          {% for dept in departments %}
+          <option value="{{ dept }}" {{ 'selected' if request.args.get('department') == dept else '' }}>{{ dept }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">-- All Statuses --</option>
+          <option value="verified" {{ 'selected' if request.args.get('status') == 'verified' else '' }}>Verified</option>
+          <option value="shortlisted" {{ 'selected' if request.args.get('status') == 'shortlisted' else '' }}>Shortlisted</option>
+          <option value="pending" {{ 'selected' if request.args.get('status') == 'pending' else '' }}>Pending</option>
+          <option value="flagged" {{ 'selected' if request.args.get('status') == 'flagged' else '' }}>Flagged</option>
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary flex-grow-1">Filter</button>
+        <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Floating Batch Actions Toolbar -->
+  <div id="batchToolbar" class="card card-modern p-3 mb-3 bg-primary text-white border-0 shadow-lg d-none">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-check-circle-fill fs-5 text-warning"></i>
+        <span class="fw-bold" id="selectedCountText">0 candidates selected</span>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <!-- Compare Selected -->
+        <button type="button" class="btn btn-sm btn-light fw-semibold" id="btnCompareSelected">
+          <i class="bi bi-arrow-left-right text-primary me-1"></i> Compare Candidates
+        </button>
+
+        <!-- Export Selected in Excel -->
+        <button type="button" class="btn btn-sm btn-light fw-semibold" data-bs-toggle="modal" data-bs-target="#customExcelModal">
+          <i class="bi bi-file-earmark-excel text-success me-1"></i> Export Selected
+        </button>
+
+        <!-- Dropdown for Status & Actions -->
+        <div class="dropdown">
+          <button class="btn btn-sm btn-light dropdown-toggle fw-semibold" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-gear-fill me-1"></i> Batch Actions
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow">
+            <li><button class="dropdown-item" type="button" onclick="executeBatchAction('mark_shortlisted')"><i class="bi bi-star-fill text-warning me-2"></i> Mark as Shortlisted</button></li>
+            <li><button class="dropdown-item" type="button" onclick="executeBatchAction('mark_verified')"><i class="bi bi-shield-check text-success me-2"></i> Mark as Verified</button></li>
+            <li><button class="dropdown-item" type="button" onclick="executeBatchAction('mark_flagged')"><i class="bi bi-flag-fill text-danger me-2"></i> Flag for Review</button></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button class="dropdown-item" type="button" onclick="executeBatchAction('recalculate')"><i class="bi bi-arrow-repeat text-primary me-2"></i> Recalculate Scores</button></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><button class="dropdown-item text-danger" type="button" onclick="executeBatchAction('delete')"><i class="bi bi-trash me-2"></i> Delete Selected</button></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submissions Table -->
+  <div class="card card-modern p-4">
+    {% if submissions %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small text-uppercase">
+          <tr>
+            <th style="width: 40px;">
+              <input type="checkbox" class="form-check-input" id="selectAllCheckbox" title="Select All Candidates">
+            </th>
+            <th>Rank</th>
+            <th>Candidate</th>
+            <th>Roll Number</th>
+            <th>Department</th>
+            <th>CGPA & Backlogs</th>
+            <th>Coding Profiles</th>
+            <th>Final Score</th>
+            <th>Percentile</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in submissions %}
+          {% set score = sub.latest_score %}
+          <tr>
+            <td>
+              <input type="checkbox" class="form-check-input row-select-checkbox" value="{{ sub.id }}">
+            </td>
+            <td>
+              {% if score and score.rank %}
+                <span class="badge {{ 'bg-warning text-dark' if score.rank == 1 else ('bg-secondary text-white' if score.rank == 2 else ('bg-warning-subtle text-warning' if score.rank == 3 else 'bg-body-secondary text-secondary')) }} font-monospace">
+                  #{{ score.rank }}
+                </span>
+              {% else %}
+                <span class="text-muted small">&mdash;</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="fw-bold">{{ sub.student_name }}</div>
+              <div class="small text-muted">{{ sub.email }}</div>
+            </td>
+            <td class="font-monospace small fw-semibold">{{ sub.roll_number }}</td>
+            <td class="small">{{ sub.department or 'N/A' }}</td>
+            <td>
+              <span class="badge bg-info-subtle text-info fw-bold">{{ sub.cgpa }}</span>
+              {% if sub.backlogs and sub.backlogs > 0 %}
+                <span class="badge bg-danger-subtle text-danger small ms-1" title="{{ sub.backlogs }} Active Backlogs">{{ sub.backlogs }} Backlog</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex flex-wrap gap-1 small">
+                {% for prof in sub.platform_profiles.all() %}
+                  {% if prof.platform_name == 'leetcode' %}
+                    <span class="badge bg-warning-subtle text-warning border" title="LeetCode: {{ prof.problems_solved }} solved | Rating: {{ prof.contest_rating|int }}">
+                      <i class="bi bi-code-slash"></i> {{ prof.problems_solved }}
+                    </span>
+                  {% elif prof.platform_name == 'github' %}
+                    <span class="badge bg-dark-subtle text-dark border" title="GitHub: {{ prof.problems_solved }} repos">
+                      <i class="bi bi-github"></i> {{ prof.problems_solved }}
+                    </span>
+                  {% elif prof.platform_name == 'codechef' %}
+                    <span class="badge bg-danger-subtle text-danger border" title="CodeChef: {{ prof.stars_or_badges }}★ (Rating: {{ prof.contest_rating|int }})">
+                      <i class="bi bi-fire"></i> {{ prof.stars_or_badges }}★
+                    </span>
+                  {% elif prof.platform_name == 'atcoder' %}
+                    <span class="badge bg-secondary-subtle text-secondary border" title="AtCoder Rating: {{ prof.contest_rating|int }}">
+                      <i class="bi bi-diagram-3"></i> {{ prof.contest_rating|int }}
+                    </span>
+                  {% elif prof.platform_name == 'interviewbit' %}
+                    <span class="badge bg-primary-subtle text-primary border" title="InterviewBit Score: {{ prof.contest_rating|int }}">
+                      <i class="bi bi-bullseye"></i> {{ prof.contest_rating|int }}
+                    </span>
+                  {% elif prof.platform_name == 'kaggle' %}
+                    <span class="badge bg-info-subtle text-info border" title="Kaggle: {{ prof.stars_or_badges }} medals">
+                      <i class="bi bi-trophy"></i> {{ prof.stars_or_badges }}m
+                    </span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </td>
+            <td>
+              {% if score %}
+                <div class="fw-bold fs-6 text-primary">{{ score.total_score }}</div>
+                <span class="badge bg-secondary-subtle text-secondary small">Grade {{ score.grade }}</span>
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning">Pending</span>
+              {% endif %}
+            </td>
+            <td class="small fw-semibold">
+              {% if score %}
+                {{ score.percentile }}%
+              {% else %}
+                &mdash;
+              {% endif %}
+            </td>
+            <td>
+              {% set v_status = sub.verification_status or 'verified' %}
+              <span class="badge {{ 'bg-success-subtle text-success' if v_status == 'verified' else ('bg-primary-subtle text-primary' if v_status == 'shortlisted' else ('bg-warning-subtle text-warning' if v_status == 'pending' else 'bg-danger-subtle text-danger')) }}">
+                {{ v_status|capitalize }}
+              </span>
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('forms_mgr.submission_detail', form_id=form.id, submission_id=sub.id) }}" class="btn btn-outline-secondary" title="View Full Report">
+                  <i class="bi bi-file-person"></i> Report
+                </a>
+                <a href="{{ url_for('forms_mgr.edit_submission', form_id=form.id, submission_id=sub.id) }}" class="btn btn-outline-primary" title="Edit Student Data">
+                  <i class="bi bi-pencil-square"></i> Edit
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-inbox display-4 d-block mb-3 text-secondary"></i>
+      <h5>No Submissions Found</h5>
+      <p class="small">Share the public URL or QR code with your students to collect evaluations.</p>
+      <a href="{{ url_for('forms_mgr.share', form_id=form.id) }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-qr-code me-1"></i> Get Shareable Link
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Custom Excel Export Modal -->
+<div class="modal fade" id="customExcelModal" tabindex="-1" aria-labelledby="customExcelModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold" id="customExcelModalLabel">
+          <i class="bi bi-file-earmark-excel me-2"></i> Granular Custom Excel Export
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <form method="POST" action="{{ url_for('forms_mgr.export_custom_excel', form_id=form.id) }}" id="customExportForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="selected_ids_str" id="exportSelectedIds">
+
+        <div class="modal-body p-4">
+          <!-- Scope Selection: All vs Selected Rows -->
+          <div class="card bg-body-tertiary border p-3 mb-4 rounded-3">
+            <h6 class="fw-bold mb-2"><i class="bi bi-funnel me-1"></i> Row Scope (Students to Export)</h6>
+            <div class="d-flex flex-wrap gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="export_scope" id="scopeAll" value="all" checked>
+                <label class="form-check-label small fw-bold" for="scopeAll">
+                  All Evaluated Students ({{ submissions|length }})
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="export_scope" id="scopeSelected" value="selected">
+                <label class="form-check-label small fw-bold" for="scopeSelected" id="scopeSelectedLabel">
+                  Only Checked Students (0 selected)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column Selection with Quick Toggles -->
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-layout-three-columns me-1"></i> Select Columns to Include in Spreadsheet</h6>
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-outline-secondary" onclick="toggleAllColumns(true)">Select All</button>
+              <button type="button" class="btn btn-outline-secondary" onclick="toggleAllColumns(false)">Clear All</button>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <!-- Group 1: Student Information -->
+            <div class="col-md-6">
+              <div class="card p-3 h-100 border">
+                <div class="text-secondary small fw-bold text-uppercase mb-2"><i class="bi bi-person me-1"></i> Student Info</div>
+                <div class="d-flex flex-column gap-1 small">
+                  <label><input type="checkbox" name="columns" value="rank" class="col-check" checked> Cohort Rank (#)</label>
+                  <label><input type="checkbox" name="columns" value="student_name" class="col-check" checked> Full Name</label>
+                  <label><input type="checkbox" name="columns" value="roll_number" class="col-check" checked> Roll Number</label>
+                  <label><input type="checkbox" name="columns" value="email" class="col-check" checked> College Email</label>
+                  <label><input type="checkbox" name="columns" value="phone" class="col-check"> Phone Number</label>
+                  <label><input type="checkbox" name="columns" value="department" class="col-check" checked> Department</label>
+                  <label><input type="checkbox" name="columns" value="semester" class="col-check"> Semester</label>
+                  <label><input type="checkbox" name="columns" value="batch" class="col-check"> Batch Year</label>
+                  <label><input type="checkbox" name="columns" value="submitted_at" class="col-check"> Submission Timestamp</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 2: Academics & Evaluation Scores -->
+            <div class="col-md-6">
+              <div class="card p-3 h-100 border">
+                <div class="text-secondary small fw-bold text-uppercase mb-2"><i class="bi bi-award me-1"></i> Scores & Academics</div>
+                <div class="d-flex flex-column gap-1 small">
+                  <label><input type="checkbox" name="columns" value="cgpa" class="col-check" checked> CGPA (Out of 10.0)</label>
+                  <label><input type="checkbox" name="columns" value="backlogs" class="col-check" checked> Active Backlogs</label>
+                  <label><input type="checkbox" name="columns" value="total_score" class="col-check" checked> Total Performance Score (100)</label>
+                  <label><input type="checkbox" name="columns" value="percentile" class="col-check" checked> Percentile (%)</label>
+                  <label><input type="checkbox" name="columns" value="grade" class="col-check" checked> Letter Grade</label>
+                  <label><input type="checkbox" name="columns" value="verification_status" class="col-check" checked> Verification Status</label>
+                  <label><input type="checkbox" name="columns" value="teacher_remarks" class="col-check"> Teacher Remarks</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 3: Coding Platform Handles & Metrics -->
+            <div class="col-12">
+              <div class="card p-3 border">
+                <div class="text-secondary small fw-bold text-uppercase mb-2"><i class="bi bi-cpu me-1"></i> Coding Platform Statistics</div>
+                <div class="row g-2 small">
+                  <div class="col-md-4 d-flex flex-column gap-1">
+                    <span class="fw-bold text-muted">LeetCode:</span>
+                    <label><input type="checkbox" name="columns" value="leetcode_handle" class="col-check"> LeetCode Username</label>
+                    <label><input type="checkbox" name="columns" value="leetcode_solved" class="col-check" checked> LeetCode Problems Solved</label>
+                    <label><input type="checkbox" name="columns" value="leetcode_rating" class="col-check" checked> LeetCode Contest Rating</label>
+                    <label><input type="checkbox" name="columns" value="leetcode_rank" class="col-check"> LeetCode Global Rank</label>
+                  </div>
+                  <div class="col-md-4 d-flex flex-column gap-1">
+                    <span class="fw-bold text-muted">CodeChef & Codeforces:</span>
+                    <label><input type="checkbox" name="columns" value="codechef_handle" class="col-check"> CodeChef Username</label>
+                    <label><input type="checkbox" name="columns" value="codechef_rating" class="col-check" checked> CodeChef Rating</label>
+                    <label><input type="checkbox" name="columns" value="codechef_stars" class="col-check" checked> CodeChef Stars</label>
+                    <label><input type="checkbox" name="columns" value="codeforces_handle" class="col-check"> Codeforces Handle</label>
+                    <label><input type="checkbox" name="columns" value="codeforces_rating" class="col-check" checked> Codeforces Rating</label>
+                  </div>
+                  <div class="col-md-4 d-flex flex-column gap-1">
+                    <span class="fw-bold text-muted">GitHub & More Platforms:</span>
+                    <label><input type="checkbox" name="columns" value="github_handle" class="col-check"> GitHub Username</label>
+                    <label><input type="checkbox" name="columns" value="github_repos" class="col-check" checked> GitHub Public Repos</label>
+                    <label><input type="checkbox" name="columns" value="github_stars" class="col-check" checked> GitHub Stars Earned</label>
+                    <label><input type="checkbox" name="columns" value="atcoder_rating" class="col-check"> AtCoder Rating</label>
+                    <label><input type="checkbox" name="columns" value="interviewbit_score" class="col-check"> InterviewBit Score</label>
+                    <label><input type="checkbox" name="columns" value="kaggle_medals" class="col-check"> Kaggle Medals</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 4: Dynamic Form Questions -->
+            {% set custom_fields = form.fields.all() %}
+            {% if custom_fields %}
+            <div class="col-12">
+              <div class="card p-3 border">
+                <div class="text-secondary small fw-bold text-uppercase mb-2"><i class="bi bi-ui-checks me-1"></i> Custom Assessment Questions</div>
+                <div class="d-flex flex-wrap gap-3 small">
+                  {% for f in custom_fields %}
+                  <label class="me-2"><input type="checkbox" name="columns" value="q_{{ f.field_key }}" class="col-check"> {{ f.label }}</label>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-success px-4 fw-bold">
+            <i class="bi bi-file-earmark-arrow-down-fill me-1"></i> Download Filtered Excel (.xlsx)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden Batch Form -->
+<form id="batchActionForm" method="POST" action="{{ url_for('forms_mgr.batch_action', form_id=form.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="action" id="batchActionInput">
+  <input type="hidden" name="selected_ids_str" id="batchSelectedIdsInput">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const selectAll = document.getElementById('selectAllCheckbox');
+  const rowCheckboxes = document.querySelectorAll('.row-select-checkbox');
+  const batchToolbar = document.getElementById('batchToolbar');
+  const selectedCountText = document.getElementById('selectedCountText');
+  const scopeSelectedLabel = document.getElementById('scopeSelectedLabel');
+  const exportSelectedIds = document.getElementById('exportSelectedIds');
+  const scopeSelected = document.getElementById('scopeSelected');
+  const scopeAll = document.getElementById('scopeAll');
+  const btnCompareSelected = document.getElementById('btnCompareSelected');
+
+  function updateSelection() {
+    const selected = Array.from(rowCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    const count = selected.length;
+    
+    if (count > 0) {
+      batchToolbar.classList.remove('d-none');
+      selectedCountText.textContent = `${count} candidate${count > 1 ? 's' : ''} selected`;
+      scopeSelectedLabel.textContent = `Only Checked Students (${count} selected)`;
+      exportSelectedIds.value = selected.join(',');
+      scopeSelected.disabled = false;
+      scopeSelected.checked = true;
+    } else {
+      batchToolbar.classList.add('d-none');
+      scopeSelectedLabel.textContent = `Only Checked Students (0 selected)`;
+      exportSelectedIds.value = '';
+      scopeSelected.disabled = true;
+      scopeAll.checked = true;
+    }
+
+    if (selectAll) {
+      selectAll.checked = rowCheckboxes.length > 0 && selected.length === rowCheckboxes.length;
+      selectAll.indeterminate = selected.length > 0 && selected.length < rowCheckboxes.length;
+    }
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', () => {
+      rowCheckboxes.forEach(cb => cb.checked = selectAll.checked);
+      updateSelection();
+    });
+  }
+
+  rowCheckboxes.forEach(cb => {
+    cb.addEventListener('change', updateSelection);
+  });
+
+  // Compare candidates
+  if (btnCompareSelected) {
+    btnCompareSelected.addEventListener('click', () => {
+      const selected = Array.from(rowCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+      if (selected.length < 2) {
+        alert('Please select at least 2 candidates to compare side-by-side.');
+        return;
+      }
+      if (selected.length > 5) {
+        alert('You can compare a maximum of 5 candidates at a time.');
+        return;
+      }
+      window.location.href = `{{ url_for('forms_mgr.compare_submissions', form_id=form.id) }}?ids=${selected.join(',')}`;
+    });
+  }
+
+  // Handle custom excel submit scope
+  const customExportForm = document.getElementById('customExportForm');
+  if (customExportForm) {
+    customExportForm.addEventListener('submit', (e) => {
+      const isSelectedOnly = scopeSelected.checked;
+      if (isSelectedOnly) {
+        const selected = Array.from(rowCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+        if (selected.length === 0) {
+          alert('No students selected. Please check at least one student or choose "All Evaluated Students".');
+          e.preventDefault();
+          return;
+        }
+        exportSelectedIds.value = selected.join(',');
+      } else {
+        exportSelectedIds.value = '';
+      }
+    });
+  }
+
+  window.toggleAllColumns = function(check) {
+    document.querySelectorAll('.col-check').forEach(cb => cb.checked = check);
+  };
+
+  window.executeBatchAction = function(action) {
+    const selected = Array.from(rowCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    if (selected.length === 0) {
+      alert('Please select one or more candidates first.');
+      return;
+    }
+    if (action === 'delete') {
+      if (!confirm(`Are you sure you want to permanently delete ${selected.length} candidate submission(s)? This will recalculate cohort rankings.`)) {
+        return;
+      }
+    }
+    document.getElementById('batchActionInput').value = action;
+    document.getElementById('batchSelectedIdsInput').value = selected.join(',');
+    document.getElementById('batchActionForm').submit();
+  };
+});
+</script>
+{% endblock %}

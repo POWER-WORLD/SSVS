@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Score Formula Builder — {{ form.title }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('forms_mgr.list_forms') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h3 class="fw-bold mb-0">Intelligent Score Formula Engine</h3>
+        <div class="small text-muted">{{ form.title }} &bull; Visual Weightage & Penalty Customizer</div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="bi bi-magic me-1"></i> Apply Formula Preset
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+          {% for p_key, preset in presets.items() %}
+          <li>
+            <form method="POST" action="{{ url_for('forms_mgr.apply_preset', form_id=form.id, preset_name=p_key) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="dropdown-item small py-2">
+                <div class="fw-bold">{{ preset.name }}</div>
+                <div class="small text-muted text-truncate" style="max-width: 250px;">{{ preset.description }}</div>
+              </button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('forms_mgr.formula_builder', form_id=form.id) }}" id="formula-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="row g-4">
+      <!-- Left: Formula Configuration -->
+      <div class="col-lg-8">
+        <div class="card card-modern p-4 mb-4">
+          <h5 class="fw-bold mb-3"><i class="bi bi-sliders text-primary me-2"></i> Scoring Engine Parameters</h5>
+          
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Formula Scheme Name</label>
+              <input type="text" name="name" class="form-control form-control-modern" value="{{ formula.name if formula else 'Campus Placement Formula' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-bold">Max Scale Marks</label>
+              <input type="number" name="max_total_marks" class="form-control form-control-modern" value="{{ formula.max_total_marks if formula else 100.0 }}" step="1">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-bold">Normalization Engine</label>
+              <select name="normalization_method" class="form-select form-select-modern">
+                <option value="min_max" {{ 'selected' if formula and formula.normalization_method == 'min_max' else '' }}>Min-Max (0-100)</option>
+                <option value="percentile" {{ 'selected' if formula and formula.normalization_method == 'percentile' else '' }}>Percentile Scaled</option>
+                <option value="z_score" {{ 'selected' if formula and formula.normalization_method == 'z_score' else '' }}>Z-Score Normalized</option>
+                <option value="weighted_sum" {{ 'selected' if formula and formula.normalization_method == 'weighted_sum' else '' }}>Direct Weighted Sum</option>
+              </select>
+            </div>
+          </div>
+
+          <h6 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-list-check text-primary me-2"></i> Metric Evaluation Rules</span>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="add-rule-btn">
+              <i class="bi bi-plus-lg me-1"></i> Add Custom Metric
+            </button>
+          </h6>
+
+          <div id="rules-container">
+            {% for r in rules %}
+            <div class="card bg-body-tertiary border p-3 mb-3 rule-card rounded-3">
+              <div class="row g-2 align-items-center">
+                <div class="col-md-3">
+                  <label class="form-label small text-muted mb-1">Metric Key</label>
+                  <select name="rule_metric_key" class="form-select form-select-sm">
+                    <option value="cgpa" {{ 'selected' if r.metric_key == 'cgpa' else '' }}>Academic CGPA</option>
+                    <option value="leetcode_solved" {{ 'selected' if r.metric_key == 'leetcode_solved' else '' }}>LeetCode Solved</option>
+                    <option value="leetcode_rating" {{ 'selected' if r.metric_key == 'leetcode_rating' else '' }}>LeetCode Rating</option>
+                    <option value="codechef_rating" {{ 'selected' if r.metric_key == 'codechef_rating' else '' }}>CodeChef Rating</option>
+                    <option value="codeforces_rating" {{ 'selected' if r.metric_key == 'codeforces_rating' else '' }}>Codeforces Rating</option>
+                    <option value="github_stars_repos" {{ 'selected' if r.metric_key == 'github_stars_repos' else '' }}>GitHub Repos & Stars</option>
+                    <option value="hackerrank_badges" {{ 'selected' if r.metric_key == 'hackerrank_badges' else '' }}>HackerRank Badges</option>
+                    <option value="backlogs_penalty" {{ 'selected' if r.metric_key == 'backlogs_penalty' else '' }}>Backlog Penalty</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label small text-muted mb-1">Display Label</label>
+                  <input type="text" name="rule_display_label" class="form-control form-control-sm" value="{{ r.display_label }}">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small text-muted mb-1">Weight (%)</label>
+                  <input type="number" name="rule_weight" class="form-control form-control-sm" value="{{ r.weight_percentage }}" step="1">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small text-muted mb-1">Max Marks</label>
+                  <input type="number" name="rule_max_marks" class="form-control form-control-sm" value="{{ r.max_marks }}" step="1">
+                </div>
+                <div class="col-md-1">
+                  <label class="form-label small text-muted mb-1">Penalty</label>
+                  <input type="number" name="rule_penalty" class="form-control form-control-sm text-danger" value="{{ r.penalty_per_unit or 0 }}" step="1" title="Deduction per unit">
+                </div>
+                <div class="col-md-1 text-end">
+                  <label class="form-label small text-muted mb-1 d-block">&nbsp;</label>
+                  <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.rule-card').remove()">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+                <input type="hidden" name="rule_category" value="{{ r.category }}">
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+            <span class="small text-muted"><i class="bi bi-info-circle me-1"></i> Saving will automatically recalculate rankings for all existing submissions.</span>
+            <button type="submit" class="btn btn-primary-gradient px-4">
+              <i class="bi bi-calculator me-1"></i> Save Formula & Recalculate Ranks
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Formula Info & Explanation -->
+      <div class="col-lg-4">
+        <div class="card card-modern p-4 mb-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb-fill text-warning me-2"></i> How Scoring Works</h6>
+          <p class="small text-secondary mb-3">
+            SSVS combines extracted competitive coding statistics, repository metrics, and academic CGPA into a single objective score on a 100-point scale.
+          </p>
+          <div class="p-3 bg-body-tertiary rounded small mb-3">
+            <div class="fw-bold mb-1">Active Backlog Penalties:</div>
+            <div class="text-secondary">If configured, each active backlog deducts the specified marks from the student's subtotal before normalization.</div>
+          </div>
+          <div class="p-3 bg-body-tertiary rounded small mb-3">
+            <div class="fw-bold mb-1">Competitive Benchmarks:</div>
+            <div class="text-secondary">LeetCode 300+ solved & 1800+ rating, CodeChef 1700+ rating, and GitHub activity are evaluated against university placement standards.</div>
+          </div>
+          <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary w-100">
+            <i class="bi bi-people me-1"></i> View Cohort Submissions
+          </a>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('add-rule-btn')?.addEventListener('click', function() {
+    const container = document.getElementById('rules-container');
+    const template = `
+      <div class="card bg-body-tertiary border p-3 mb-3 rule-card rounded-3">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-3">
+            <label class="form-label small text-muted mb-1">Metric Key</label>
+            <select name="rule_metric_key" class="form-select form-select-sm">
+              <option value="leetcode_solved">LeetCode Solved</option>
+              <option value="leetcode_rating">LeetCode Rating</option>
+              <option value="codechef_rating">CodeChef Rating</option>
+              <option value="codeforces_rating">Codeforces Rating</option>
+              <option value="github_stars_repos">GitHub Repos & Stars</option>
+              <option value="hackerrank_badges">HackerRank Badges</option>
+              <option value="cgpa">Academic CGPA</option>
+              <option value="backlogs_penalty">Backlog Penalty</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small text-muted mb-1">Display Label</label>
+            <input type="text" name="rule_display_label" class="form-control form-control-sm" value="New Metric">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Weight (%)</label>
+            <input type="number" name="rule_weight" class="form-control form-control-sm" value="10" step="1">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Max Marks</label>
+            <input type="number" name="rule_max_marks" class="form-control form-control-sm" value="10" step="1">
+          </div>
+          <div class="col-md-1">
+            <label class="form-label small text-muted mb-1">Penalty</label>
+            <input type="number" name="rule_penalty" class="form-control form-control-sm text-danger" value="0" step="1">
+          </div>
+          <div class="col-md-1 text-end">
+            <label class="form-label small text-muted mb-1 d-block">&nbsp;</label>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.rule-card').remove()">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <input type="hidden" name="rule_category" value="coding">
+        </div>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', template);
+  });
+</script>
+{% endblock %}

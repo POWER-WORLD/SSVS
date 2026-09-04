@@ -1,0 +1,59 @@
+# ==========================================
+# Student Score View System (SSVS) .gitignore
+# ==========================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Sensitive Environment Variables (DO NOT COMMIT)
+.env
+.env.local
+.env.*.local
+
+# Allow committing environment template
+!.env.example
+
+# Local SQLite databases & instance storage
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded candidate files & dynamic QR codes
+uploads/*
+!uploads/.gitkeep
+uploads/qrcodes/*
+
+# IDEs, Editors & OS Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Testing, Cache & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache/
+
+# Local logs & debug files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

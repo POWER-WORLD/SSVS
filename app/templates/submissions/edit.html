@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Candidate Data — {{ submission.student_name }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('forms_mgr.submission_detail', form_id=form.id, submission_id=submission.id) }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h3 class="fw-bold mb-0">Edit Candidate Submission</h3>
+        <div class="small text-muted">{{ submission.student_name }} &bull; {{ submission.roll_number }} &bull; {{ form.title }}</div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('forms_mgr.submission_detail', form_id=form.id, submission_id=submission.id) }}" class="btn btn-sm btn-outline-secondary">
+        Cancel
+      </a>
+      <button type="submit" form="edit-submission-form" class="btn btn-sm btn-primary-gradient px-4">
+        <i class="bi bi-check2-circle me-1"></i> Save Changes
+      </button>
+    </div>
+  </div>
+
+  <form id="edit-submission-form" method="POST" action="{{ url_for('forms_mgr.edit_submission', form_id=form.id, submission_id=submission.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="row g-4">
+      <!-- Left Column: Core Student Info & Academics -->
+      <div class="col-lg-7">
+        <!-- Student Info Card -->
+        <div class="card card-modern p-4 mb-4">
+          <h5 class="fw-bold mb-3"><i class="bi bi-person-badge text-primary me-2"></i> Student Identification</h5>
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Full Name <span class="text-danger">*</span></label>
+              <input type="text" name="student_name" class="form-control form-control-sm" value="{{ submission.student_name }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Roll Number / Student ID <span class="text-danger">*</span></label>
+              <input type="text" name="roll_number" class="form-control form-control-sm font-monospace" value="{{ submission.roll_number }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Email Address <span class="text-danger">*</span></label>
+              <input type="email" name="email" class="form-control form-control-sm" value="{{ submission.email }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Phone Number</label>
+              <input type="text" name="phone" class="form-control form-control-sm" value="{{ submission.phone or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Department / Branch</label>
+              <input type="text" name="department" class="form-control form-control-sm" value="{{ submission.department or '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-bold">Semester</label>
+              <input type="text" name="semester" class="form-control form-control-sm" value="{{ submission.semester or '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-bold">Batch Year</label>
+              <input type="text" name="batch" class="form-control form-control-sm" value="{{ submission.batch or '' }}">
+            </div>
+          </div>
+        </div>
+
+        <!-- Academic Information Card -->
+        <div class="card card-modern p-4 mb-4">
+          <h5 class="fw-bold mb-3"><i class="bi bi-mortarboard text-info me-2"></i> Academic Performance</h5>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Current CGPA (Out of 10.0)</label>
+              <input type="number" step="0.01" min="0" max="10" name="cgpa" class="form-control form-control-sm font-monospace" value="{{ submission.cgpa or 0.0 }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-bold">Active Backlogs Count</label>
+              <input type="number" min="0" name="backlogs" class="form-control form-control-sm font-monospace" value="{{ submission.backlogs or 0 }}">
+              <div class="form-text small text-muted">Penalties are calculated dynamically based on formula rules.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Form Responses Card -->
+        {% if values %}
+        <div class="card card-modern p-4 mb-4">
+          <h5 class="fw-bold mb-3"><i class="bi bi-ui-checks text-secondary me-2"></i> Form Field Responses</h5>
+          <div class="d-flex flex-column gap-3">
+            {% for val in values %}
+            <div>
+              <label class="form-label small fw-bold">{{ val.field.label if val.field else 'Field' }}</label>
+              <input type="text" name="{{ val.field.field_key if val.field else 'val_' ~ val.id }}" class="form-control form-control-sm" value="{{ val.value_text or '' }}">
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Right Column: Platform Handles & Teacher Moderation -->
+      <div class="col-lg-5">
+        <!-- Teacher Moderation Card -->
+        <div class="card card-modern p-4 mb-4 border-primary">
+          <h5 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i> Faculty Verification & Remarks</h5>
+          
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Candidate Status</label>
+            <select name="verification_status" class="form-select form-select-sm">
+              <option value="verified" {{ 'selected' if submission.verification_status == 'verified' or not submission.verification_status }}>Verified & Eligible</option>
+              <option value="shortlisted" {{ 'selected' if submission.verification_status == 'shortlisted' }}>Shortlisted for Placement</option>
+              <option value="pending" {{ 'selected' if submission.verification_status == 'pending' }}>Pending Verification</option>
+              <option value="flagged" {{ 'selected' if submission.verification_status == 'flagged' }}>Flagged / Review Required</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Teacher Remarks / Notes</label>
+            <textarea name="teacher_remarks" rows="3" class="form-control form-control-sm" placeholder="Add confidential notes or interview comments...">{{ submission.teacher_remarks or '' }}</textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Manual Score Adjustment (+/- Marks)</label>
+            <input type="number" step="0.5" name="manual_score_adjustment" class="form-control form-control-sm font-monospace" value="{{ submission.manual_score_adjustment or 0.0 }}">
+            <div class="form-text small text-muted">Direct bonus or deduction applied to final score (e.g. +5 for hackathon win, -10 for disciplinary action).</div>
+          </div>
+
+          <div class="form-check form-switch p-2 bg-body-tertiary rounded border">
+            <input class="form-check-input ms-0 me-2" type="checkbox" name="recalculate_score" id="recalculate_score" checked>
+            <label class="form-check-label small fw-bold" for="recalculate_score">
+              Immediately Recalculate Score & Cohort Rank
+            </label>
+          </div>
+        </div>
+
+        <!-- Platform Usernames / Handles Card -->
+        <div class="card card-modern p-4 mb-4">
+          <h5 class="fw-bold mb-3"><i class="bi bi-cpu text-secondary me-2"></i> Coding Profile Handles</h5>
+          <div class="small text-muted mb-3">Update username or URL if the student submitted a typo.</div>
+
+          <div class="d-flex flex-column gap-2">
+            <!-- LeetCode -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-code-slash text-warning me-1"></i> LeetCode</label>
+              <input type="text" name="handle_leetcode" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('leetcode').username if 'leetcode' in profiles else '' }}">
+            </div>
+
+            <!-- CodeChef -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-fire text-danger me-1"></i> CodeChef</label>
+              <input type="text" name="handle_codechef" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('codechef').username if 'codechef' in profiles else '' }}">
+            </div>
+
+            <!-- Codeforces -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-lightning-charge text-primary me-1"></i> Codeforces</label>
+              <input type="text" name="handle_codeforces" class="form-control form-control-sm font-monospace" placeholder="Handle" value="{{ profiles.get('codeforces').username if 'codeforces' in profiles else '' }}">
+            </div>
+
+            <!-- GitHub -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-github text-dark me-1"></i> GitHub</label>
+              <input type="text" name="handle_github" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('github').username if 'github' in profiles else '' }}">
+            </div>
+
+            <!-- HackerRank -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-check-all text-success me-1"></i> HackerRank</label>
+              <input type="text" name="handle_hackerrank" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('hackerrank').username if 'hackerrank' in profiles else '' }}">
+            </div>
+
+            <!-- GeeksforGeeks -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-terminal text-success me-1"></i> GeeksforGeeks</label>
+              <input type="text" name="handle_gfg" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ (profiles.get('gfg') or profiles.get('geeksforgeeks')).username if ('gfg' in profiles or 'geeksforgeeks' in profiles) else '' }}">
+            </div>
+
+            <!-- AtCoder -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-diagram-3 text-secondary me-1"></i> AtCoder</label>
+              <input type="text" name="handle_atcoder" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('atcoder').username if 'atcoder' in profiles else '' }}">
+            </div>
+
+            <!-- InterviewBit -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-bullseye text-primary me-1"></i> InterviewBit</label>
+              <input type="text" name="handle_interviewbit" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('interviewbit').username if 'interviewbit' in profiles else '' }}">
+            </div>
+
+            <!-- Kaggle -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-trophy text-info me-1"></i> Kaggle</label>
+              <input type="text" name="handle_kaggle" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('kaggle').username if 'kaggle' in profiles else '' }}">
+            </div>
+          </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="card card-modern p-4 border-danger">
+          <h6 class="fw-bold text-danger mb-2"><i class="bi bi-trash3 me-1"></i> Delete Candidate Submission</h6>
+          <p class="small text-muted mb-3">Permanently removes this submission and recalculates ranks for the remaining students.</p>
+          <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+            Delete Submission
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i> Delete Candidate</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to permanently delete the submission for <strong>{{ submission.student_name }}</strong> (Roll No: {{ submission.roll_number }})? This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form method="POST" action="{{ url_for('forms_mgr.delete_submission', form_id=form.id, submission_id=submission.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-danger">Confirm Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

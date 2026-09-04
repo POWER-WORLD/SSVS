@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}Candidate Head-to-Head Comparison — {{ form.title }} | SSVS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h3 class="fw-bold mb-0">Candidate Head-to-Head Comparison</h3>
+        <div class="small text-muted">{{ form.title }} &bull; Comparing {{ candidates|length }} selected candidates</div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-printer me-1"></i> Print / PDF
+      </button>
+      <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-sm btn-primary">
+        Back to Submissions
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <!-- Visual Chart Card: Multi-Candidate Comparison Radar / Bar -->
+    <div class="col-lg-6">
+      <div class="card card-modern p-4 h-100">
+        <h5 class="fw-bold mb-3"><i class="bi bi-diagram-3 text-primary me-2"></i> Skill Radar Comparison</h5>
+        <div class="small text-muted mb-3">Multi-dimensional evaluation across academics, competitive programming, and open-source contribution.</div>
+        <div style="height: 380px;">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grouped Bar Chart -->
+    <div class="col-lg-6">
+      <div class="card card-modern p-4 h-100">
+        <h5 class="fw-bold mb-3"><i class="bi bi-bar-chart-line text-success me-2"></i> Performance Benchmarks</h5>
+        <div class="small text-muted mb-3">Comparing total score, CGPA, and problems solved.</div>
+        <div style="height: 380px;">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Side-by-Side Spec Table -->
+  <div class="card card-modern p-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-table text-primary me-2"></i> Detailed Side-by-Side Breakdown</h5>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle small mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 220px;">Evaluation Metric</th>
+            {% for c in candidates %}
+            <th class="text-center">
+              <div class="fw-bold fs-6">{{ c.name }}</div>
+              <div class="font-monospace text-muted small">{{ c.roll }}</div>
+              <span class="badge {{ 'bg-warning text-dark' if c.rank == 1 else ('bg-secondary text-white' if c.rank == 2 else ('bg-warning-subtle text-warning' if c.rank == 3 else 'bg-body-secondary text-secondary')) }} mt-1">
+                Rank #{{ c.rank }}
+              </span>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Core Scores -->
+          <tr class="table-primary fw-bold">
+            <td colspan="{{ candidates|length + 1 }}"><i class="bi bi-award me-1"></i> FINAL EVALUATION & SCORES</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Final Calculated Score</td>
+            {% for c in candidates %}
+            <td class="text-center fs-6 fw-bold text-primary">{{ c.total_score }} / 100</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">Cohort Percentile</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.percentile }}%</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">Letter Grade</td>
+            {% for c in candidates %}
+            <td class="text-center fw-bold text-success">{{ c.grade }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">Verification Status</td>
+            {% for c in candidates %}
+            <td class="text-center">
+              <span class="badge {{ 'bg-success-subtle text-success' if c.status == 'verified' else ('bg-primary-subtle text-primary' if c.status == 'shortlisted' else 'bg-warning-subtle text-warning') }}">
+                {{ c.status|capitalize }}
+              </span>
+            </td>
+            {% endfor %}
+          </tr>
+
+          <!-- Academics -->
+          <tr class="table-light fw-bold">
+            <td colspan="{{ candidates|length + 1 }}"><i class="bi bi-mortarboard me-1"></i> ACADEMIC RECORDS</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Department</td>
+            {% for c in candidates %}
+            <td class="text-center">{{ c.dept or 'N/A' }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">CGPA (Out of 10.0)</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace fw-bold text-info">{{ c.cgpa }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">Active Backlogs</td>
+            {% for c in candidates %}
+            <td class="text-center">
+              {% if c.backlogs > 0 %}
+                <span class="badge bg-danger-subtle text-danger">{{ c.backlogs }} Backlog(s)</span>
+              {% else %}
+                <span class="text-success"><i class="bi bi-check-circle-fill"></i> Clear</span>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+
+          <!-- LeetCode -->
+          <tr class="table-light fw-bold">
+            <td colspan="{{ candidates|length + 1 }}"><i class="bi bi-code-slash text-warning me-1"></i> LEETCODE STATS</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Problems Solved</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace fw-bold">{{ c.leetcode_solved }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">Contest Rating</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.leetcode_rating }}</td>
+            {% endfor %}
+          </tr>
+
+          <!-- CodeChef & Codeforces -->
+          <tr class="table-light fw-bold">
+            <td colspan="{{ candidates|length + 1 }}"><i class="bi bi-lightning-charge text-danger me-1"></i> CODECHEF & CODEFORCES</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">CodeChef Rating</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.codechef_rating|int }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">Codeforces Rating</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.codeforces_rating|int }}</td>
+            {% endfor %}
+          </tr>
+
+          <!-- GitHub & Project Portfolio -->
+          <tr class="table-light fw-bold">
+            <td colspan="{{ candidates|length + 1 }}"><i class="bi bi-github me-1"></i> GITHUB OPEN SOURCE</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Public Repositories</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.github_repos }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">Stars Earned</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.github_stars }}★</td>
+            {% endfor %}
+          </tr>
+
+          <!-- Additional Platforms -->
+          <tr class="table-light fw-bold">
+            <td colspan="{{ candidates|length + 1 }}"><i class="bi bi-grid-3x3-gap me-1"></i> ADDITIONAL PLATFORMS</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">AtCoder Rating</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.atcoder_rating|int }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">InterviewBit Score</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.interviewbit_score|int }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">Kaggle Medals</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.kaggle_medals }}</td>
+            {% endfor %}
+          </tr>
+          
+          <!-- Actions -->
+          <tr>
+            <td class="fw-semibold">Individual Dossier</td>
+            {% for c in candidates %}
+            <td class="text-center">
+              <a href="{{ url_for('forms_mgr.submission_detail', form_id=form.id, submission_id=c.id) }}" class="btn btn-sm btn-outline-secondary">
+                View Full Report
+              </a>
+            </td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const candidates = {{ candidates|tojson }};
+  const colors = [
+    { bg: 'rgba(79, 70, 229, 0.2)', border: 'rgb(79, 70, 229)' },
+    { bg: 'rgba(16, 185, 129, 0.2)', border: 'rgb(16, 185, 129)' },
+    { bg: 'rgba(245, 158, 11, 0.2)', border: 'rgb(245, 158, 11)' },
+    { bg: 'rgba(236, 72, 153, 0.2)', border: 'rgb(236, 72, 153)' }
+  ];
+
+  // Radar Chart
+  const radarCtx = document.getElementById('radarChart');
+  if (radarCtx) {
+    const radarDatasets = candidates.map((c, i) => {
+      const color = colors[i % colors.length];
+      return {
+        label: c.name,
+        data: [
+          c.cgpa * 10,  // Scale to 100
+          Math.min(100, (c.leetcode_solved / 400) * 100),
+          Math.min(100, (c.leetcode_rating / 2000) * 100),
+          Math.min(100, (c.codechef_rating / 2000) * 100),
+          Math.min(100, (c.github_repos / 30) * 100),
+          Math.min(100, (c.total_score))
+        ],
+        backgroundColor: color.bg,
+        borderColor: color.border,
+        borderWidth: 2,
+        pointBackgroundColor: color.border
+      };
+    });
+
+    new Chart(radarCtx, {
+      type: 'radar',
+      data: {
+        labels: ['CGPA (10x)', 'LeetCode Solved', 'Contest Rating', 'CodeChef Rating', 'GitHub Repos', 'Overall Score'],
+        datasets: radarDatasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            suggestedMin: 0,
+            suggestedMax: 100,
+            ticks: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  // Bar Chart
+  const barCtx = document.getElementById('barChart');
+  if (barCtx) {
+    new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: candidates.map(c => c.name),
+        datasets: [
+          {
+            label: 'Total Score (100)',
+            data: candidates.map(c => c.total_score),
+            backgroundColor: 'rgba(79, 70, 229, 0.8)'
+          },
+          {
+            label: 'LeetCode Solved',
+            data: candidates.map(c => c.leetcode_solved),
+            backgroundColor: 'rgba(245, 158, 11, 0.8)'
+          },
+          {
+            label: 'CGPA (x10)',
+            data: candidates.map(c => c.cgpa * 10),
+            backgroundColor: 'rgba(16, 185, 129, 0.8)'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
