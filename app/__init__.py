@@ -11,10 +11,25 @@ from app.api import api_bp
 
 def create_app(config_name=None):
     if config_name is None:
-        config_name = os.environ.get('FLASK_ENV', 'development')
+        config_name = os.environ.get('FLASK_ENV') or ('production' if os.environ.get('RENDER') else 'development')
+    if config_name not in config:
+        config_name = 'production' if os.environ.get('RENDER') else 'development'
 
     app = Flask(__name__)
     app.config.from_object(config[config_name])
+    config[config_name].init_app(app)
+
+    # Apply ProxyFix for reverse proxy support on Render / Heroku / Nginx (HTTPS & real IP)
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+    # Enable WhiteNoise for fast, cached static assets in production
+    try:
+        from whitenoise import WhiteNoise
+        static_dir = os.path.join(app.root_path, 'static')
+        app.wsgi_app = WhiteNoise(app.wsgi_app, root=static_dir, prefix='static/')
+    except ImportError:
+        pass
 
     # Ensure required directories exist
     os.makedirs(app.config.get('UPLOAD_FOLDER', 'uploads'), exist_ok=True)
@@ -37,6 +52,11 @@ def create_app(config_name=None):
     app.register_blueprint(student_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(api_bp)
+
+    # Lightweight health check endpoint for Render/uptime monitoring
+    @app.route('/healthz')
+    def health_check():
+        return {'status': 'healthy', 'service': 'SSVS'}, 200
 
     # Register template filters & context processors
     @app.context_processor

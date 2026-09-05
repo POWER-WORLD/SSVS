@@ -13,7 +13,7 @@ _executor = ThreadPoolExecutor(max_workers=4)
 def _process_submission_job(app, submission_id: int):
     """Background worker job to extract statistics and calculate scores."""
     with app.app_context():
-        sub = Submission.query.get(submission_id)
+        sub = db.session.get(Submission, submission_id)
         if not sub:
             return
 
@@ -39,6 +39,12 @@ def _process_submission_job(app, submission_id: int):
                         handles['hackerrank'] = text_val
                     elif 'gfg' in binding or 'geeks' in binding:
                         handles['gfg'] = text_val
+                    elif 'atcoder' in binding:
+                        handles['atcoder'] = text_val
+                    elif 'interviewbit' in binding:
+                        handles['interviewbit'] = text_val
+                    elif 'kaggle' in binding:
+                        handles['kaggle'] = text_val
 
             # Also check direct fields if passed
             stats = extract_all_profiles(handles, cgpa=float(sub.cgpa or 0.0), backlogs=int(sub.backlogs or 0))
@@ -130,6 +136,48 @@ def _process_submission_job(app, submission_id: int):
                     contest_rating=float(stats.gfg.coding_score),
                     raw_data=stats.to_dict()['gfg'],
                     extraction_status='simulated' if stats.gfg.is_simulated else 'success'
+                ))
+
+            if stats.atcoder:
+                db.session.add(PlatformProfile(
+                    submission_id=sub.id,
+                    platform_name='atcoder',
+                    username=stats.atcoder.username,
+                    profile_url=stats.atcoder.profile_url,
+                    avatar_url=stats.atcoder.avatar_url,
+                    problems_solved=stats.atcoder.problems_solved,
+                    contest_rating=float(stats.atcoder.current_rating),
+                    highest_rating=float(stats.atcoder.highest_rating),
+                    global_rank=stats.atcoder.global_rank,
+                    raw_data=stats.to_dict()['atcoder'],
+                    extraction_status='simulated' if stats.atcoder.is_simulated else 'success'
+                ))
+
+            if stats.interviewbit:
+                db.session.add(PlatformProfile(
+                    submission_id=sub.id,
+                    platform_name='interviewbit',
+                    username=stats.interviewbit.username,
+                    profile_url=stats.interviewbit.profile_url,
+                    avatar_url=stats.interviewbit.avatar_url,
+                    problems_solved=stats.interviewbit.problems_solved,
+                    contest_rating=float(stats.interviewbit.score),
+                    global_rank=stats.interviewbit.global_rank,
+                    raw_data=stats.to_dict()['interviewbit'],
+                    extraction_status='simulated' if stats.interviewbit.is_simulated else 'success'
+                ))
+
+            if stats.kaggle:
+                db.session.add(PlatformProfile(
+                    submission_id=sub.id,
+                    platform_name='kaggle',
+                    username=stats.kaggle.username,
+                    profile_url=stats.kaggle.profile_url,
+                    avatar_url=stats.kaggle.avatar_url,
+                    problems_solved=stats.kaggle.competitions_count,
+                    stars_or_badges=stats.kaggle.total_medals,
+                    raw_data=stats.to_dict()['kaggle'],
+                    extraction_status='simulated' if stats.kaggle.is_simulated else 'success'
                 ))
 
             sub.status = 'scoring'

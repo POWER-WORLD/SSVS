@@ -48,6 +48,10 @@ class Config:
     # QR Code storage
     QR_FOLDER = os.path.join(BASE_DIR, 'uploads', 'qrcodes')
 
+    @classmethod
+    def init_app(cls, app):
+        pass
+
 class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
@@ -62,8 +66,14 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'ssvs_prod.db')}")
+    SQLALCHEMY_DATABASE_URI = get_database_uri('ssvs_prod.db')
     SESSION_COOKIE_SECURE = True
+
+    @classmethod
+    def init_app(cls, app):
+        Config.init_app(app)
+        if not os.environ.get('SECRET_KEY'):
+            app.logger.warning("Production SECRET_KEY environment variable not set! Set SECRET_KEY in the Render dashboard.")
 
 config = {
     'development': DevelopmentConfig,
