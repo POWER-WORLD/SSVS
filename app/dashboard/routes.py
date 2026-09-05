@@ -9,9 +9,10 @@ dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/')
 def index():
+    featured_form = Form.query.filter_by(is_published=True, is_public=True).first()
     if current_user.is_authenticated:
-        return render_template('landing.html', user=current_user)
-    return render_template('landing.html')
+        return render_template('landing.html', user=current_user, featured_form=featured_form)
+    return render_template('landing.html', featured_form=featured_form)
 
 @dashboard_bp.route('/dashboard')
 @login_required

@@ -36,29 +36,52 @@
         </a>
       </div>
 
-      <!-- Quick Demo Access Box -->
+      <!-- Active Assessment Drive / System Capabilities -->
+      {% if featured_form %}
       <div class="card card-glass p-4 text-start shadow-sm mx-auto" style="max-width: 780px;">
         <div class="d-flex align-items-center justify-content-between mb-3">
           <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-success-subtle text-success fw-bold">LIVE COHORT PREVIEW</span>
-            <span class="small text-muted">IIT Delhi CSE 2026 Batch</span>
+            <span class="badge bg-success-subtle text-success fw-bold">ACTIVE ASSESSMENT</span>
+            <span class="small text-muted">{{ featured_form.teacher.college_name or 'Institutional Evaluation' }}</span>
           </div>
-          <span class="badge bg-primary-subtle text-primary">25 Submissions Evaluated</span>
+          <span class="badge bg-primary-subtle text-primary">{{ featured_form.submissions.count() }} Submissions</span>
         </div>
         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
           <div class="small">
-            <strong>Sample Assessment:</strong> Campus Placement 2026 — Technical Evaluation
+            <strong>Active Assessment:</strong> {{ featured_form.title }}
           </div>
           <div class="d-flex gap-2">
-            <a href="/f/iitd-cse-placement-2026" class="btn btn-sm btn-outline-primary" target="_blank">
+            <a href="{{ url_for('student.view_form', slug=featured_form.slug) }}" class="btn btn-sm btn-outline-primary" target="_blank">
               <i class="bi bi-box-arrow-up-right me-1"></i> Student Form
             </a>
-            <a href="/leaderboard/iitd-cse-placement-2026" class="btn btn-sm btn-primary-gradient">
+            <a href="{{ url_for('student.view_leaderboard', slug=featured_form.slug) }}" class="btn btn-sm btn-primary-gradient">
               <i class="bi bi-trophy me-1"></i> Live Leaderboard
             </a>
           </div>
         </div>
       </div>
+      {% else %}
+      <div class="card card-glass p-4 text-start shadow-sm mx-auto" style="max-width: 780px;">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary fw-bold"><i class="bi bi-cpu-fill me-1"></i> MULTI-PLATFORM ENGINE</span>
+            <span class="small text-muted">Academic & Competitive Programming</span>
+          </div>
+          <span class="badge bg-success-subtle text-success"><i class="bi bi-shield-check me-1"></i> Production Ready</span>
+        </div>
+        <p class="small text-secondary mb-3">
+          Build custom evaluation drives, extract statistics automatically across LeetCode, CodeChef, Codeforces, GitHub, and generate single-page verifiable scorecards with dynamic QR codes.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{{ url_for('auth.register') }}" class="btn btn-sm btn-primary-gradient">
+            <i class="bi bi-person-plus-fill me-1"></i> Register Faculty Account
+          </a>
+          <a href="{{ url_for('student.public_leaderboard_search') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-search me-1"></i> Browse Public Leaderboards
+          </a>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 
@@ -116,32 +139,42 @@
           <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Real-time multi-step extraction status tracker</li>
           <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Instant placement on the public cohort leaderboard</li>
         </ul>
-        <a href="{{ url_for('student.view_form', slug='iitd-cse-placement-2026') }}" class="btn btn-outline-primary fw-semibold">
-          Preview Student Experience <i class="bi bi-arrow-right ms-1"></i>
+        {% if featured_form %}
+        <a href="{{ url_for('student.view_form', slug=featured_form.slug) }}" class="btn btn-outline-primary fw-semibold">
+          View Active Assessment Form <i class="bi bi-arrow-right ms-1"></i>
         </a>
+        {% else %}
+        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary fw-semibold">
+          Get Started as Faculty <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+        {% endif %}
       </div>
       <div class="col-lg-6 mt-4 mt-lg-0 text-center">
         <div class="card card-modern p-4 border shadow-sm text-start">
           <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-            <span class="fw-bold text-primary"><i class="bi bi-shield-check me-1"></i> Live Extraction Pipeline</span>
-            <span class="badge bg-success-subtle text-success">Async Worker Active</span>
+            <span class="fw-bold text-primary"><i class="bi bi-cpu-fill me-1"></i> Real-Time Extraction Engine</span>
+            <span class="badge bg-success-subtle text-success"><i class="bi bi-check2-all me-1"></i> Multi-Platform Active</span>
           </div>
-          <div class="small text-secondary mb-2"><strong>Target Student:</strong> Aarav Sharma (2022CSB101)</div>
+          <div class="small text-secondary mb-3">Instant automated profile sync and metric extraction across 8+ platforms:</div>
           <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
-            <span>LeetCode: leetcode.com/u/aarav_algo</span>
-            <span class="text-success"><i class="bi bi-check2"></i> 480 Solved</span>
-          </div>
-          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
-            <span>CodeChef: codechef.com/users/aarav_cc</span>
-            <span class="text-success"><i class="bi bi-check2"></i> 1820 Rating (4★)</span>
+            <span><i class="bi bi-code-square text-warning me-2"></i>LeetCode</span>
+            <span class="text-success"><i class="bi bi-check2"></i> Solved Breakdown & Rating</span>
           </div>
           <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
-            <span>GitHub: github.com/aaravdev</span>
-            <span class="text-success"><i class="bi bi-check2"></i> 32 Repos | 48★</span>
+            <span><i class="bi bi-award text-primary me-2"></i>CodeChef & Codeforces</span>
+            <span class="text-success"><i class="bi bi-check2"></i> Global Ranks & Stars</span>
+          </div>
+          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
+            <span><i class="bi bi-github text-dark me-2"></i>GitHub & Open Source</span>
+            <span class="text-success"><i class="bi bi-check2"></i> Repos, Stars & Commits</span>
+          </div>
+          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
+            <span><i class="bi bi-diagram-3 text-info me-2"></i>AtCoder, Kaggle & GFG</span>
+            <span class="text-success"><i class="bi bi-check2"></i> Competitions & Badges</span>
           </div>
           <div class="p-2 rounded bg-primary-subtle text-primary fw-bold small d-flex justify-content-between mt-3">
-            <span>Calculated Score:</span>
-            <span>94.8 / 100 (Rank #1 Gold)</span>
+            <span>Evaluation Engine:</span>
+            <span>Weighted Formulas & Dynamic Leaderboard</span>
           </div>
         </div>
       </div>

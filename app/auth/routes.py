@@ -109,7 +109,7 @@ def profile():
 def forgot_password():
     form = ForgotPasswordForm()
     if form.validate_on_submit():
-        # Demo simulation for forgot password
+        # Password reset request notice
         flash('If an account matches that email, password reset instructions have been generated.', 'info')
         return redirect(url_for('auth.login'))
     return render_template('auth/forgot_password.html', form=form)

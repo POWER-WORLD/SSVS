@@ -62,9 +62,10 @@ d:/Agents/SSVS/
 │   └── templates/                 # Jinja2 templates (SaaS layout, dark/light themes)
 ├── tests/
 │   └── test_ssvs.py               # Automated unit & integration tests
-├── .env                           # Environment variables (Neon PostgreSQL connection string)
-├── requirements.txt               # Pinned dependencies
-├── seed_data.py                   # Realistic 25-student cohort seeder
+├── .env.example                   # Environment variable template
+├── requirements.txt               # Pinned dependencies (Flask, SQLAlchemy, Gunicorn, WhiteNoise)
+├── render.yaml                    # Render 1-click blueprint deployment
+├── wsgi.py                        # Production WSGI entry point
 └── run.py                         # Application runner
 ```
 
@@ -87,7 +88,7 @@ pip install -r requirements.txt
 
 ### 2. Database Configuration
 The application automatically reads `DATABASE_URL` from `.env`.
-To use PostgreSQL (Neon, Supabase, AWS RDS, etc.):
+To use PostgreSQL (Neon, Supabase, AWS RDS, Render Postgres):
 ```env
 DATABASE_URL=postgresql://<username>:<password>@<host>/<database>?sslmode=require
 SECRET_KEY=your-production-secret-key-here
@@ -97,25 +98,18 @@ Or for local SQLite development, leave `DATABASE_URL` blank or set:
 DATABASE_URL=sqlite:///instance/ssvs_dev.db
 ```
 
-### 3. Optional: Seed Sample Demo Cohort (Local Development Only)
-```bash
-python seed_data.py
-```
-This sets up a sample faculty account and 25 student records for local interface demonstration.
-
-### 4. Run Application Server
+### 3. Run Application Server
 ```bash
 python run.py
 ```
 Open your browser at:
 - **Landing Page**: `http://localhost:5000/`
-- **Live Leaderboard**: `http://localhost:5000/leaderboard/iitd-cse-placement-2026`
-- **Student Public Form**: `http://localhost:5000/f/iitd-cse-placement-2026`
-- **Faculty Login**: `http://localhost:5000/auth/login` (Use **Quick Fill** button)
-- **Analytics Dashboard**: `http://localhost:5000/analytics/1`
-- **Form Builder**: `http://localhost:5000/forms/1/builder`
+- **Faculty Register**: `http://localhost:5000/auth/register`
+- **Faculty Login**: `http://localhost:5000/auth/login`
+- **Public Leaderboards**: `http://localhost:5000/leaderboard`
+- **Health Probe**: `http://localhost:5000/healthz`
 
-### 5. Running Automated Tests
+### 4. Running Automated Tests
 ```bash
 python -m unittest tests/test_ssvs.py
 ```
