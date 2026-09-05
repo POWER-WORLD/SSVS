@@ -8,6 +8,7 @@ from app.models.submission import Submission, SubmissionValue
 from app.models.scoring import LeaderboardEntry, CalculatedScore
 from app.utils.background import queue_submission_processing
 from app.utils.security import is_allowed_file
+from app.utils.qrcode_gen import generate_qr_base64
 
 student_bp = Blueprint('student', __name__)
 
@@ -28,60 +29,51 @@ def view_form(slug):
     # Group fields by section title
     sections = {}
     for f in fields:
-        sec = f.section_title or "General Information"
+        sec = f.section_title or 'General Details'
         if sec not in sections:
             sections[sec] = []
         sections[sec].append(f)
 
-    return render_template('student/form_view.html', form=form, sections=sections, fields=fields)
+    return render_template('student/form_view.html', form=form, fields=fields, sections=sections)
 
 @student_bp.route('/f/<slug>/submit', methods=['POST'])
 def submit_form(slug):
     form = Form.query.filter_by(slug=slug).first_or_404()
     if not form.is_open:
-        flash('This form is no longer accepting responses.', 'danger')
+        flash('This form is currently not accepting submissions.', 'danger')
         return redirect(url_for('student.view_form', slug=slug))
 
-    fields = form.fields.all()
-    field_map = {f.field_key: f for f in fields}
+    fields = form.fields.order_by(FormField.display_order.asc()).all()
     
-    # Extract values and check required
     extracted_data = {}
-    missing_required = []
-    
     for f in fields:
-        val = None
-        if f.field_type == 'file' or f.field_type == 'image':
+        if f.field_type == 'file':
             file = request.files.get(f.field_key)
-            if file and file.filename:
-                if is_allowed_file(file.filename, current_app.config['ALLOWED_EXTENSIONS']):
-                    sec_name = secure_filename(f"{form.id}_{f.field_key}_{file.filename}")
-                    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], sec_name)
-                    os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
-                    file.save(upload_path)
-                    val = f"uploads/{sec_name}"
-        elif f.field_type == 'checkbox' or f.field_type == 'multiselect':
-            vals = request.form.getlist(f.field_key)
-            val = ", ".join(vals) if vals else ""
+            if file and file.filename and is_allowed_file(file.filename, current_app.config['ALLOWED_EXTENSIONS']):
+                filename = f"{uuid.uuid4().hex[:12]}_{secure_filename(file.filename)}"
+                upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+                os.makedirs(upload_folder, exist_ok=True)
+                file_path = os.path.join(upload_folder, filename)
+                file.save(file_path)
+                extracted_data[f.field_key] = f"uploads/{filename}"
+            elif f.is_required and not extracted_data.get(f.field_key):
+                flash(f'Field "{f.label}" is required.', 'danger')
+                return redirect(url_for('student.view_form', slug=slug))
         else:
             val = request.form.get(f.field_key, '').strip()
+            if f.is_required and not val:
+                flash(f'Field "{f.label}" is required.', 'danger')
+                return redirect(url_for('student.view_form', slug=slug))
+            extracted_data[f.field_key] = val
 
-        if f.is_required and not val:
-            missing_required.append(f.label)
-        extracted_data[f.field_key] = val
-
-    if missing_required:
-        flash(f"Please fill all required fields: {', '.join(missing_required)}", 'danger')
-        return redirect(url_for('student.view_form', slug=slug))
-
-    # Core student fields
-    roll_number = extracted_data.get('roll_number', '').strip()
-    student_name = extracted_data.get('student_name', '').strip()
-    email = extracted_data.get('email', '').strip().lower()
-    phone = extracted_data.get('phone', '')
-    department = extracted_data.get('department', '')
-    semester = extracted_data.get('semester', '6')
-    batch = extracted_data.get('batch', '2026')
+    # Extract standard candidate bindings
+    student_name = extracted_data.get('student_name') or request.form.get('student_name', 'Student Candidate')
+    roll_number = extracted_data.get('roll_number') or request.form.get('roll_number', 'N/A')
+    email = extracted_data.get('email') or request.form.get('email', '')
+    phone = extracted_data.get('phone') or request.form.get('phone', '')
+    department = extracted_data.get('department') or request.form.get('department', 'Computer Science')
+    semester = extracted_data.get('semester') or request.form.get('semester', '6')
+    batch = extracted_data.get('batch') or request.form.get('batch', '2026')
     
     try:
         cgpa = float(extracted_data.get('cgpa', 0.0))
@@ -156,6 +148,42 @@ def submission_status(uuid):
         form=form,
         score=score,
         profiles=profiles
+    )
+
+@student_bp.route('/submission/<uuid>/scorecard')
+def view_scorecard(uuid):
+    submission = Submission.query.filter_by(uuid=uuid).first_or_404()
+    form = submission.form
+    score = submission.latest_score
+    profiles = submission.platform_profiles.all()
+    
+    # Total candidates count for cohort context
+    total_candidates = form.submissions.count()
+    
+    # Verification URL & QR code
+    verify_url = url_for('student.view_scorecard', uuid=submission.uuid, _external=True)
+    qr_code_b64 = generate_qr_base64(verify_url)
+    
+    # Formula & rules breakdown
+    formula = form.formulas.filter_by(is_active=True).first()
+    breakdown = (score.breakdown_json or {}) if score else {}
+    
+    # Platform profiles map for easy lookup
+    profiles_dict = {p.platform_name.lower(): p for p in profiles}
+    
+    return render_template(
+        'student/scorecard.html',
+        submission=submission,
+        form=form,
+        score=score,
+        profiles=profiles,
+        profiles_dict=profiles_dict,
+        total_candidates=total_candidates,
+        qr_code_b64=qr_code_b64,
+        formula=formula,
+        breakdown=breakdown,
+        verify_url=verify_url,
+        auto_print=request.args.get('print') == '1'
     )
 
 @student_bp.route('/leaderboard')

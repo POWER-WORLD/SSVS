@@ -233,6 +233,9 @@
             </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('student.view_scorecard', uuid=sub.uuid) }}" target="_blank" class="btn btn-outline-warning" title="View & Print Official Scorecard Certificate">
+                  <i class="bi bi-award-fill"></i> Scorecard
+                </a>
                 <a href="{{ url_for('forms_mgr.submission_detail', form_id=form.id, submission_id=sub.id) }}" class="btn btn-outline-secondary" title="View Full Report">
                   <i class="bi bi-file-person"></i> Report
                 </a>

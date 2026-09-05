@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Official Scorecard — {{ submission.student_name }} | {{ form.title }}</title>
+  
+  <!-- Modern Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <style>
+    :root {
+      --primary-navy: #0f172a;
+      --deep-indigo: #1e1b4b;
+      --accent-gold: #d97706;
+      --light-gold: #fef3c7;
+      --border-gold: #b45309;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0b0f19;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    /* Screen Top Action Bar */
+    .screen-toolbar {
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      position: sticky;
+      top: 0;
+      z-index: 1050;
+      padding: 12px 24px;
+    }
+
+    /* Printable Scorecard Paper Container */
+    .scorecard-wrapper {
+      padding: 30px 15px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .scorecard-sheet {
+      width: 210mm;
+      min-height: 297mm;
+      max-height: 297mm;
+      background: #ffffff;
+      padding: 10mm 12mm 8mm 12mm;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    /* Elegant Certificate Borders */
+    .cert-frame {
+      position: absolute;
+      top: 5mm;
+      left: 5mm;
+      right: 5mm;
+      bottom: 5mm;
+      border: 2px solid #1e293b;
+      pointer-events: none;
+    }
+
+    .cert-frame-inner {
+      position: absolute;
+      top: 7mm;
+      left: 7mm;
+      right: 7mm;
+      bottom: 7mm;
+      border: 1px solid #d97706;
+      pointer-events: none;
+    }
+
+    .corner-bracket {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-color: #d97706;
+      border-style: solid;
+      pointer-events: none;
+    }
+    .corner-tl { top: 6mm; left: 6mm; border-width: 2px 0 0 2px; }
+    .corner-tr { top: 6mm; right: 6mm; border-width: 2px 2px 0 0; }
+    .corner-bl { bottom: 6mm; left: 6mm; border-width: 0 0 2px 2px; }
+    .corner-br { bottom: 6mm; right: 6mm; border-width: 0 2px 2px 0; }
+
+    /* Faint Watermark */
+    .sheet-watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-25deg);
+      font-family: 'Cinzel', serif;
+      font-size: 5.5rem;
+      font-weight: 800;
+      color: rgba(15, 23, 42, 0.025);
+      letter-spacing: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1;
+      text-transform: uppercase;
+    }
+
+    .sheet-content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Header Section */
+    .cert-header {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .inst-crest {
+      width: 58px;
+      height: 58px;
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      color: #fbbf24;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.85rem;
+      box-shadow: 0 4px 10px rgba(30, 27, 75, 0.2);
+    }
+
+    .inst-name {
+      font-family: 'Cinzel', serif;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+
+    .inst-dept {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: #d97706;
+      text-transform: uppercase;
+    }
+
+    .cert-badge-pill {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.65rem;
+      line-height: 1.3;
+      text-align: right;
+    }
+
+    /* Certificate Title Ribbon */
+    .title-ribbon {
+      text-align: center;
+      background: linear-gradient(90deg, transparent, rgba(217, 119, 6, 0.08), transparent);
+      padding: 4px 0 6px 0;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .title-ribbon h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #1e1b4b;
+      letter-spacing: 1.5px;
+      margin: 0;
+      text-transform: uppercase;
+    }
+
+    .title-ribbon .form-title-sub {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #475569;
+      letter-spacing: 0.5px;
+    }
+
+    /* Student Profile Block */
+    .candidate-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #4f46e5;
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+    }
+
+    .candidate-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+      line-height: 1.1;
+    }
+
+    .candidate-meta-item {
+      font-size: 0.72rem;
+      line-height: 1.35;
+    }
+
+    .candidate-meta-label {
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.62rem;
+      letter-spacing: 0.5px;
+    }
+
+    .candidate-meta-val {
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    /* Grand Hero Metrics Strip */
+    .hero-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .hero-cell {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 6px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .hero-cell.cell-primary {
+      background: linear-gradient(145deg, #1e1b4b, #312e81);
+      color: #ffffff;
+      border-color: #1e1b4b;
+    }
+
+    .hero-cell.cell-primary .metric-sub {
+      color: #cbd5e1;
+    }
+
+    .metric-title {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 2px;
+      color: #64748b;
+    }
+
+    .cell-primary .metric-title {
+      color: #f59e0b;
+    }
+
+    .metric-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.65rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 2px;
+    }
+
+    .metric-sub {
+      font-size: 0.64rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    /* Two-Column Evidence & Breakdown */
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.05fr;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .evidence-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      height: 100%;
+    }
+
+    .sec-heading {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #0f172a;
+      border-bottom: 1.5px solid #f1f5f9;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Platform Item Micro Cards */
+    .platform-micro-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 5px 8px;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .platform-micro-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .plat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .plat-stat {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* Formula Breakdown Mini Table */
+    .breakdown-table {
+      width: 100%;
+      font-size: 0.67rem;
+      margin: 0;
+      border-collapse: collapse;
+    }
+
+    .breakdown-table th {
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.58rem;
+      padding: 3px 5px;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .breakdown-table td {
+      padding: 3.5px 5px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+      vertical-align: middle;
+    }
+
+    .breakdown-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .breakdown-table tr.total-row td {
+      font-weight: 800;
+      background: #f8fafc;
+      border-top: 1.5px solid #cbd5e1;
+      color: #0f172a;
+    }
+
+    /* Bottom Trust & Verification Footer */
+    .cert-footer {
+      border-top: 2px solid #e2e8f0;
+      padding-top: 8px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .qr-block {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .qr-code-img {
+      width: 62px;
+      height: 62px;
+      border: 1px solid #cbd5e1;
+      padding: 2px;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .qr-caption {
+      font-size: 0.62rem;
+      line-height: 1.25;
+      color: #475569;
+    }
+
+    .qr-caption strong {
+      color: #0f172a;
+      display: block;
+      font-size: 0.68rem;
+    }
+
+    /* Official Gold Stamp / Seal */
+    .official-seal {
+      width: 64px;
+      height: 64px;
+      border: 2px dashed #d97706;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: radial-gradient(circle, #fffbeb 60%, #fef3c7 100%);
+      color: #b45309;
+      box-shadow: 0 0 0 2px #fff, 0 0 0 3px #d97706;
+      margin: 0 auto;
+    }
+
+    .official-seal i {
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .official-seal span {
+      font-family: 'Cinzel', serif;
+      font-size: 0.44rem;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      line-height: 1.1;
+      margin-top: 1px;
+    }
+
+    /* Signatures Block */
+    .sign-block {
+      text-align: right;
+      min-width: 170px;
+    }
+
+    .sign-script {
+      font-family: 'Cinzel', cursive, serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1e1b4b;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+      font-style: italic;
+    }
+
+    .sign-line {
+      border-top: 1px solid #94a3b8;
+      padding-top: 2px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .sign-title {
+      font-size: 0.58rem;
+      color: #64748b;
+    }
+
+    .disclaimer-text {
+      font-size: 0.55rem;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 4px;
+      line-height: 1.2;
+    }
+
+    /* PRINT SPECIFIC STYLES: Enforce STRICT Single Page A4 */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 6mm 8mm 6mm 8mm !important;
+      }
+
+      body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .screen-toolbar {
+        display: none !important;
+      }
+
+      .scorecard-wrapper {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        display: block !important;
+      }
+
+      .scorecard-sheet {
+        box-shadow: none !important;
+        border: none !important;
+        width: 100% !important;
+        min-height: auto !important;
+        max-height: none !important;
+        padding: 6mm 8mm !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-inside: avoid !important;
+      }
+
+      .cert-frame {
+        top: 2mm !important;
+        left: 2mm !important;
+        right: 2mm !important;
+        bottom: 2mm !important;
+      }
+
+      .cert-frame-inner {
+        top: 3.5mm !important;
+        left: 3.5mm !important;
+        right: 3.5mm !important;
+        bottom: 3.5mm !important;
+      }
+
+      .corner-tl { top: 2.5mm !important; left: 2.5mm !important; }
+      .corner-tr { top: 2.5mm !important; right: 2.5mm !important; }
+      .corner-bl { bottom: 2.5mm !important; left: 2.5mm !important; }
+      .corner-br { bottom: 2.5mm !important; right: 2.5mm !important; }
+
+      a {
+        text-decoration: none !important;
+        color: inherit !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Screen Toolbar (Hidden During Printing) -->
+  <div class="screen-toolbar no-print">
+    <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('student.submission_status', uuid=submission.uuid) }}" class="btn btn-sm btn-outline-light">
+          <i class="bi bi-arrow-left me-1"></i> Back to Status
+        </a>
+        <div class="text-white d-none d-md-block">
+          <span class="badge bg-success me-2"><i class="bi bi-check-circle-fill me-1"></i> Official Scorecard</span>
+          <span class="text-white-50 small">{{ submission.student_name }} ({{ submission.roll_number }})</span>
+        </div>
+      </div>
+      
+      <div class="d-flex align-items-center gap-2">
+        <button onclick="copyShareLink()" class="btn btn-sm btn-outline-light" id="btn-copy-link" title="Copy Verification Link">
+          <i class="bi bi-link-45deg me-1"></i> Copy Link
+        </button>
+        <button onclick="window.print()" class="btn btn-sm btn-warning fw-bold px-4 shadow-sm" id="btn-print-scorecard">
+          <i class="bi bi-printer-fill me-1"></i> Print Scorecard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scorecard Document Paper Wrapper -->
+  <div class="scorecard-wrapper">
+    <div class="scorecard-sheet">
+      <!-- Outer Frame & Corner Brackets -->
+      <div class="cert-frame"></div>
+      <div class="cert-frame-inner"></div>
+      <div class="corner-bracket corner-tl"></div>
+      <div class="corner-bracket corner-tr"></div>
+      <div class="corner-bracket corner-bl"></div>
+      <div class="corner-bracket corner-br"></div>
+
+      <!-- Faint Security Watermark -->
+      <div class="sheet-watermark">SSVS OFFICIAL</div>
+
+      <!-- Sheet Main Content -->
+      <div class="sheet-content">
+        
+        <!-- SECTION 1: HEADER -->
+        <div>
+          <div class="cert-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+              {% if form.college_logo %}
+                <img src="{{ url_for('static', filename=form.college_logo) }}" alt="Logo" class="rounded" style="width: 54px; height: 54px; object-fit: contain;">
+              {% else %}
+                <div class="inst-crest">
+                  <i class="bi bi-mortarboard-fill"></i>
+                </div>
+              {% endif %}
+              <div>
+                <div class="inst-name">{{ form.teacher.college_name or 'DEPARTMENT OF COMPUTER SCIENCE & ENGINEERING' }}</div>
+                <div class="inst-dept">{{ form.teacher.department or 'FACULTY OF ENGINEERING & TECHNOLOGY' }}</div>
+                <div class="small fw-semibold text-secondary" style="font-size: 0.65rem; letter-spacing: 0.5px;">
+                  STUDENT SCORE VIEW SYSTEM (SSVS) &bull; CONTINUOUS TECHNICAL EVALUATION
+                </div>
+              </div>
+            </div>
+
+            <div class="cert-badge-pill">
+              <div class="fw-bold text-dark font-monospace" style="font-size: 0.72rem;">SSVS-{{ submission.uuid[:8]|upper }}</div>
+              <div class="text-muted">Issued: {{ submission.submitted_at.strftime('%d %b %Y') if submission.submitted_at else 'Verified' }}</div>
+              <div class="text-success fw-bold"><i class="bi bi-shield-check"></i> Authentic Audit</div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: TITLE RIBBON -->
+          <div class="title-ribbon">
+            <h1>Official Performance Scorecard & Certificate</h1>
+            <div class="form-title-sub">Assessment: <strong>{{ form.title }}</strong></div>
+          </div>
+
+          <!-- SECTION 3: CANDIDATE INFORMATION -->
+          <div class="candidate-box">
+            <div class="row align-items-center g-2">
+              <div class="col-md-5 border-end-md">
+                <div class="candidate-meta-label">Candidate Name</div>
+                <div class="candidate-name">{{ submission.student_name }}</div>
+                <div class="candidate-meta-item text-muted">
+                  <span class="candidate-meta-label">Roll / ID:</span> <span class="candidate-meta-val font-monospace">{{ submission.roll_number }}</span>
+                </div>
+              </div>
+
+              <div class="col-md-7">
+                <div class="row g-1">
+                  <div class="col-6">
+                    <div class="candidate-meta-item">
+                      <span class="candidate-meta-label">Department:</span>
+                      <div class="candidate-meta-val text-truncate">{{ submission.department or form.teacher.department or 'Computer Science' }}</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="candidate-meta-item">
+                      <span class="candidate-meta-label">Batch:</span>
+                      <div class="candidate-meta-val">{{ submission.batch or '2026' }} (Sem {{ submission.semester or '6' }})</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="candidate-meta-item">
+                      <span class="candidate-meta-label">CGPA:</span>
+                      <div class="candidate-meta-val text-primary fw-bold">{{ "%.2f"|format(submission.cgpa) if submission.cgpa else 'N/A' }} / 10</div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="candidate-meta-item">
+                      <span class="candidate-meta-label">Email:</span>
+                      <div class="candidate-meta-val text-truncate">{{ submission.email or 'college-student@edu.in' }}</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="candidate-meta-item">
+                      <span class="candidate-meta-label">Backlogs:</span>
+                      <div class="candidate-meta-val">{{ submission.backlogs if submission.backlogs is not none else '0' }} Active</div>
+                    </div>
+                  </div>
+                  <div class="col-3">
+                    <div class="candidate-meta-item">
+                      <span class="candidate-meta-label">Status:</span>
+                      <div class="candidate-meta-val text-success"><i class="bi bi-patch-check"></i> {{ submission.verification_status|capitalize if submission.verification_status else 'Verified' }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 4: GRAND HERO METRICS STRIP -->
+          <div class="hero-strip">
+            <div class="hero-cell cell-primary">
+              <div class="metric-title">Performance Score</div>
+              <div class="metric-value font-monospace">{{ "%.2f"|format(score.total_score) if score else "0.00" }}</div>
+              <div class="metric-sub">Out of {{ "%.0f"|format(formula.max_total_marks if formula else 100) }} Index</div>
+            </div>
+
+            <div class="hero-cell">
+              <div class="metric-title">Evaluated Grade</div>
+              <div class="metric-value text-primary font-monospace">{{ score.grade if score else 'A' }}</div>
+              <div class="metric-sub">{{ 'Distinction' if score and score.grade in ['O', 'A+', 'A'] else 'Qualified' }}</div>
+            </div>
+
+            <div class="hero-cell">
+              <div class="metric-title">Cohort Rank</div>
+              <div class="metric-value text-warning font-monospace">#{{ score.rank if score else 1 }}</div>
+              <div class="metric-sub">Out of {{ total_candidates }} Candidate{{ 's' if total_candidates != 1 else '' }}</div>
+            </div>
+
+            <div class="hero-cell">
+              <div class="metric-title">Percentile Standing</div>
+              <div class="metric-value text-success font-monospace">{{ "%.1f"|format(score.percentile) if score else "100.0" }}%</div>
+              <div class="metric-sub">{{ 'Top 10% Bracket' if score and score.percentile >= 90 else 'Standard Cohort' }}</div>
+            </div>
+          </div>
+
+          <!-- SECTION 5: TWO-COLUMN EVIDENCE & METRIC BREAKDOWN -->
+          <div class="evidence-grid">
+            
+            <!-- LEFT: Verified Coding Footprint -->
+            <div class="evidence-card">
+              <div class="sec-heading">
+                <span><i class="bi bi-code-slash text-primary me-1"></i> Verified Coding Profiles</span>
+                <span class="badge bg-light text-secondary font-monospace" style="font-size: 0.6rem;">{{ profiles|length }} Accounts</span>
+              </div>
+
+              {% if profiles %}
+                {% for p in profiles %}
+                  <div class="platform-micro-card">
+                    <div class="plat-badge">
+                      {% if p.platform_name == 'leetcode' %}
+                        <i class="bi bi-terminal-fill text-warning"></i>
+                        <span class="text-capitalize">LeetCode:</span>
+                        <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
+                      {% elif p.platform_name == 'codechef' %}
+                        <i class="bi bi-fire text-danger"></i>
+                        <span class="text-capitalize">CodeChef:</span>
+                        <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
+                      {% elif p.platform_name == 'github' %}
+                        <i class="bi bi-github text-dark"></i>
+                        <span class="text-capitalize">GitHub:</span>
+                        <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
+                      {% elif p.platform_name == 'codeforces' %}
+                        <i class="bi bi-lightning-charge-fill text-primary"></i>
+                        <span class="text-capitalize">Codeforces:</span>
+                        <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
+                      {% else %}
+                        <i class="bi bi-globe2 text-secondary"></i>
+                        <span class="text-capitalize">{{ p.platform_name }}:</span>
+                        <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
+                      {% endif %}
+                    </div>
+
+                    <div class="plat-stat">
+                      {% if p.platform_name == 'leetcode' %}
+                        <span>{{ p.problems_solved }} Solved</span>
+                        {% if p.contest_rating > 0 %}&bull; <span class="text-warning">{{ p.contest_rating|round|int }} Rtg</span>{% endif %}
+                      {% elif p.platform_name == 'codechef' %}
+                        <span>{{ p.contest_rating|round|int }} Rtg</span>
+                        {% if p.stars_or_badges > 0 %}<span class="text-danger fw-bold">({{ p.stars_or_badges }}★)</span>{% endif %}
+                      {% elif p.platform_name == 'github' %}
+                        <span>{{ p.problems_solved }} Repos</span>
+                      {% elif p.platform_name == 'codeforces' %}
+                        <span>{{ p.contest_rating|round|int }} Rtg</span>
+                      {% else %}
+                        <span>{{ p.problems_solved }} Solved</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="text-muted small p-2 text-center">No external platform bindings evaluated for this submission.</div>
+              {% endif %}
+
+              <!-- Scoring Category Totals -->
+              <div class="mt-2 pt-2 border-top d-flex justify-content-between text-muted" style="font-size: 0.64rem;">
+                <span>Academic: <strong>{{ "%.1f"|format(score.academic_score if score else 0) }}</strong></span>
+                <span>Coding: <strong>{{ "%.1f"|format(score.coding_score if score else 0) }}</strong></span>
+                <span>GitHub: <strong>{{ "%.1f"|format(score.github_score if score else 0) }}</strong></span>
+                <span>Adj: <strong>{{ "+%.1f"|format(score.bonus_awarded) if score and score.bonus_awarded else ("-%.1f"|format(score.penalty_deductions) if score and score.penalty_deductions else "0.0") }}</strong></span>
+              </div>
+            </div>
+
+            <!-- RIGHT: Formula & Metric Breakdown Table -->
+            <div class="evidence-card">
+              <div class="sec-heading">
+                <span><i class="bi bi-sliders text-primary me-1"></i> Scoring Rules Breakdown</span>
+                <span class="badge bg-light text-secondary font-monospace" style="font-size: 0.6rem;">{{ formula.name if formula else 'Standard' }}</span>
+              </div>
+
+              <table class="breakdown-table">
+                <thead>
+                  <tr>
+                    <th>Evaluated Metric</th>
+                    <th class="text-center">Candidate Val</th>
+                    <th class="text-center">Max</th>
+                    <th class="text-end">Awarded</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if breakdown %}
+                    {% for key, rule in breakdown.items() %}
+                      <tr>
+                        <td class="text-truncate" style="max-width: 140px;">
+                          {{ rule.label or key|replace('_', ' ')|capitalize }}
+                        </td>
+                        <td class="text-center font-monospace text-secondary">
+                          {% if rule.raw_value is defined %}
+                            {{ "%.1f"|format(rule.raw_value) if rule.raw_value is number else rule.raw_value }}
+                          {% else %}—{% endif %}
+                        </td>
+                        <td class="text-center font-monospace text-muted">
+                          {{ "%.0f"|format(rule.max_marks) if rule.max_marks is defined else '—' }}
+                        </td>
+                        <td class="text-end font-monospace fw-bold {{ 'text-danger' if (rule.deduction is defined and rule.deduction > 0) else 'text-primary' }}">
+                          {% if rule.deduction is defined and rule.deduction > 0 %}
+                            -{{ "%.2f"|format(rule.deduction) }}
+                          {% else %}
+                            {{ "%.2f"|format(rule.earned if rule.earned is defined else 0.0) }}
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="4" class="text-center text-muted py-2">Score formula normalized using comprehensive assessment criteria.</td>
+                    </tr>
+                  {% endif %}
+                  <tr class="total-row">
+                    <td>Net Evaluated Score</td>
+                    <td colspan="2" class="text-center text-muted font-monospace">Normalized Total</td>
+                    <td class="text-end font-monospace text-primary fs-6">{{ "%.2f"|format(score.total_score) if score else "0.00" }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SECTION 6: AUTHENTICATION, SEAL & SIGNATURE FOOTER -->
+        <div>
+          <div class="cert-footer">
+            
+            <!-- QR Code & Audit Link -->
+            <div class="qr-block">
+              <img src="{{ qr_code_b64 }}" alt="QR Verification" class="qr-code-img">
+              <div class="qr-caption">
+                <strong><i class="bi bi-qr-code-scan text-primary"></i> Scan to Verify</strong>
+                <div class="font-monospace text-muted" style="font-size: 0.58rem;">{{ verify_url|truncate(38, True, '...') }}</div>
+                <div class="text-secondary" style="font-size: 0.58rem;">Cryptographic audit record</div>
+              </div>
+            </div>
+
+            <!-- Official Gold Seal -->
+            <div class="official-seal">
+              <i class="bi bi-patch-check-fill"></i>
+              <span>Official<br>SSVS Audit<br>Verified</span>
+            </div>
+
+            <!-- Faculty Signature Line -->
+            <div class="sign-block">
+              <div class="sign-script">{{ form.teacher.full_name }}</div>
+              <div class="sign-line">{{ form.teacher.full_name }}</div>
+              <div class="sign-title">Faculty In-Charge & Evaluator</div>
+              <div class="sign-title font-monospace" style="font-size: 0.54rem; color: #94a3b8;">
+                AUTH_KEY: {{ submission.uuid[:16]|upper }}
+              </div>
+            </div>
+
+          </div>
+
+          <div class="disclaimer-text">
+            This digital certificate and performance scorecard is generated by the Student Score View System (SSVS) and certified by {{ form.teacher.college_name or 'the Academic Council' }}. Verification can be independently confirmed by scanning the embedded QR code.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Auto Print Script if print=1 or user triggers print -->
+  <script>
+    function copyShareLink() {
+      const url = window.location.href.split('?')[0];
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('btn-copy-link');
+        btn.innerHTML = '<i class="bi bi-check2 me-1 text-success"></i> Copied!';
+        setTimeout(() => {
+          btn.innerHTML = '<i class="bi bi-link-45deg me-1"></i> Copy Link';
+        }, 2000);
+      });
+    }
+
+    // Auto open print dialog if requested via ?print=1
+    {% if auto_print %}
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        window.print();
+      }, 600);
+    });
+    {% endif %}
+  </script>
+</body>
+</html>

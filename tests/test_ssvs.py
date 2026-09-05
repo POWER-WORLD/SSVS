@@ -288,6 +288,45 @@ class SSVSTestCase(unittest.TestCase):
         self.assertEqual(calc_updated.total_score, 90.0)
         self.assertEqual(sub.verification_status, 'shortlisted')
 
+    def test_scorecard_certificate_endpoint(self):
+        """Verify student official single-page scorecard/certificate rendering."""
+        form = Form(
+            teacher_id=self.teacher.id,
+            title='Scorecard Certification Form',
+            slug='scorecard-cert-slug',
+            is_published=True
+        )
+        db.session.add(form)
+        db.session.flush()
+
+        formula = ScoreFormula(form_id=form.id, name='Placement Metric', is_active=True, max_total_marks=100.0)
+        db.session.add(formula)
+        db.session.flush()
+
+        sub = Submission(
+            form_id=form.id,
+            student_name='Dev Sharma',
+            roll_number='CS2026-99',
+            email='dev@college.edu',
+            department='CSE',
+            cgpa=9.5,
+            backlogs=0,
+            status='completed'
+        )
+        db.session.add(sub)
+        db.session.commit()
+
+        calc = FormulaEvaluator.evaluate_submission(sub, formula)
+
+        resp = self.client.get(f'/submission/{sub.uuid}/scorecard')
+        self.assertEqual(resp.status_code, 200)
+        html = resp.get_data(as_text=True)
+        self.assertIn('Dev Sharma', html)
+        self.assertIn('CS2026-99', html)
+        self.assertIn('Print Scorecard', html)
+        self.assertIn('data:image/png;base64,', html)
+        self.assertIn('Official Performance Scorecard', html)
+
 if __name__ == '__main__':
     unittest.main()
 

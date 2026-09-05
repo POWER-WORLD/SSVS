@@ -56,12 +56,15 @@
 
           <!-- Actions -->
           <div class="d-flex flex-wrap justify-content-center gap-3">
-            <a href="{{ url_for('student.view_leaderboard', slug=form.slug) }}" class="btn btn-primary-gradient px-4 py-2">
+            <a href="{{ url_for('student.view_leaderboard', slug=form.slug) }}" class="btn btn-outline-secondary px-4 py-2">
               <i class="bi bi-trophy-fill text-warning me-2"></i> View Live Cohort Leaderboard
             </a>
-            <button class="btn btn-outline-secondary px-4" onclick="window.print()">
-              <i class="bi bi-printer me-1"></i> Print Scorecard
-            </button>
+            <a href="{{ url_for('student.view_scorecard', uuid=submission.uuid, print=1) }}" target="_blank" class="btn btn-primary-gradient px-4 py-2" id="btn-print-scorecard">
+              <i class="bi bi-printer-fill me-2"></i> Print Scorecard
+            </a>
+            <a href="{{ url_for('student.view_scorecard', uuid=submission.uuid) }}" target="_blank" class="btn btn-outline-primary px-4 py-2">
+              <i class="bi bi-award-fill me-2"></i> View Official Certificate
+            </a>
           </div>
 
         {% elif submission.status == 'failed' %}
