@@ -1,9 +1,18 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light" data-accent="indigo">
+<html lang="en" data-theme="light" data-bs-theme="light" data-accent="indigo">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}SSVS — Student Score View System{% endblock %}</title>
+  <script>
+    (function() {
+      var t = localStorage.getItem('ssvs_theme_mode') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', t);
+      document.documentElement.setAttribute('data-bs-theme', t);
+      var a = localStorage.getItem('ssvs_accent_color') || 'indigo';
+      document.documentElement.setAttribute('data-accent', a);
+    })();
+  </script>
   
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">

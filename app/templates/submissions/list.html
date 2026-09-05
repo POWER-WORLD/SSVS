@@ -42,12 +42,12 @@
         <div class="small mb-2">Multiple students submitted identical platform handles or roll numbers. Review below:</div>
         <div class="d-flex flex-wrap gap-2">
           {% for dup in duplicates %}
-          <div class="badge bg-warning-subtle text-dark border border-warning p-2 text-start">
+          <div class="badge bg-warning-subtle text-body border border-warning p-2 text-start">
             <div class="fw-bold"><i class="bi bi-person-x-fill text-danger me-1"></i> {{ dup.handle }}</div>
             <div class="small text-muted">
               Shared by:
               {% for st in dup.students %}
-                <a href="{{ url_for('forms_mgr.submission_detail', form_id=form.id, submission_id=st.id) }}" class="text-dark text-decoration-underline fw-semibold me-1">{{ st.name }} ({{ st.roll }})</a>{{ ', ' if not loop.last else '' }}
+                <a href="{{ url_for('forms_mgr.submission_detail', form_id=form.id, submission_id=st.id) }}" class="text-body text-decoration-underline fw-semibold me-1">{{ st.name }} ({{ st.roll }})</a>{{ ', ' if not loop.last else '' }}
               {% endfor %}
             </div>
           </div>
@@ -187,7 +187,7 @@
                       <i class="bi bi-code-slash"></i> {{ prof.problems_solved }}
                     </span>
                   {% elif prof.platform_name == 'github' %}
-                    <span class="badge bg-dark-subtle text-dark border" title="GitHub: {{ prof.problems_solved }} repos">
+                    <span class="badge bg-dark-subtle text-body border" title="GitHub: {{ prof.problems_solved }} repos">
                       <i class="bi bi-github"></i> {{ prof.problems_solved }}
                     </span>
                   {% elif prof.platform_name == 'codechef' %}
