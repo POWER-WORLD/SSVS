@@ -121,7 +121,11 @@ class FormBuilder {
       if (f.field_type === 'textarea') {
         inputPreview = `<textarea class="form-control form-control-sm" rows="2" disabled placeholder="${f.placeholder || 'Text area response...'}"></textarea>`;
       } else if (f.field_type === 'dropdown') {
-        inputPreview = `<select class="form-select form-select-sm" disabled><option>Select option...</option></select>`;
+        const optsList = Array.isArray(f.options) ? f.options : [];
+        const optsHtml = optsList.length
+          ? optsList.map(o => `<option>${typeof o === 'object' && o !== null ? (o.label || o.value || '') : o}</option>`).join('')
+          : '<option>Select option...</option>';
+        inputPreview = `<select class="form-select form-select-sm" disabled>${optsHtml}</select>`;
       } else if (f.field_type === 'section_divider') {
         inputPreview = `<hr class="my-2" /><div class="fw-bold text-primary">${f.label}</div>`;
       } else {
@@ -163,18 +167,22 @@ class FormBuilder {
     }
 
     const f = this.fields[this.selectedFieldIndex];
+    const existingOptionsText = Array.isArray(f.options)
+      ? f.options.map(o => (typeof o === 'object' && o !== null) ? (o.label || o.value || '') : String(o)).join('\n')
+      : '';
+
     this.inspector.innerHTML = `
       <div class="p-3">
         <h6 class="fw-bold border-bottom pb-2 mb-3"><i class="bi bi-gear"></i> Field Settings</h6>
         
         <div class="mb-3">
           <label class="form-label small fw-bold">Field Label</label>
-          <input type="text" class="form-control form-control-sm" id="prop-label" value="${f.label}">
+          <input type="text" class="form-control form-control-sm" id="prop-label" value="${f.label || ''}">
         </div>
 
         <div class="mb-3">
           <label class="form-label small fw-bold">Field Key (Unique Identifier)</label>
-          <input type="text" class="form-control form-control-sm font-monospace" id="prop-key" value="${f.field_key}">
+          <input type="text" class="form-control form-control-sm font-monospace" id="prop-key" value="${f.field_key || ''}">
         </div>
 
         <div class="mb-3">
@@ -191,6 +199,14 @@ class FormBuilder {
           <label class="form-label small fw-bold">Help / Description Text</label>
           <input type="text" class="form-control form-control-sm" id="prop-help" value="${f.help_text || ''}">
         </div>
+
+        ${f.field_type === 'dropdown' ? `
+        <div class="mb-3">
+          <label class="form-label small fw-bold">Dropdown Options (one per line)</label>
+          <textarea class="form-control form-control-sm font-monospace" id="prop-options" rows="4" placeholder="Option 1&#10;Option 2&#10;Option 3">${existingOptionsText}</textarea>
+          <div class="form-text small">Enter each choice on a separate line.</div>
+        </div>
+        ` : ''}
 
         <div class="mb-3">
           <label class="form-label small fw-bold">Platform Metric Binding</label>
@@ -230,6 +246,15 @@ class FormBuilder {
     document.getElementById('prop-help').oninput = (e) => { f.help_text = e.target.value; this.renderCanvas(); };
     document.getElementById('prop-binding').onchange = (e) => { f.platform_metric_binding = e.target.value; this.renderCanvas(); };
     document.getElementById('prop-required').onchange = (e) => { f.is_required = e.target.checked; this.renderCanvas(); };
+
+    const propOptions = document.getElementById('prop-options');
+    if (propOptions) {
+      propOptions.oninput = (e) => {
+        const lines = e.target.value.split('\n').map(s => s.trim()).filter(Boolean);
+        f.options = lines.map((lbl, idx) => ({ label: lbl, value: lbl, display_order: idx }));
+        this.renderCanvas();
+      };
+    }
   }
 
   async saveToServer() {
@@ -245,14 +270,31 @@ class FormBuilder {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: this.fields })
       });
-      const data = await resp.json();
-      if (data.status === 'success') {
+
+      let data;
+      const contentType = resp.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await resp.json();
+      } else {
+        const text = await resp.text();
+        throw new Error(`Server returned HTTP ${resp.status}: ${text.slice(0, 120)}`);
+      }
+
+      if (resp.ok && data.status === 'success') {
+        // Sync in-memory fields with newly saved database records (including generated IDs)
+        if (data.fields && Array.isArray(data.fields)) {
+          this.fields = data.fields;
+          this.renderCanvas();
+          if (this.selectedFieldIndex !== null) {
+            this.renderInspector();
+          }
+        }
         alert('Form field layout saved successfully!');
       } else {
-        alert('Error saving: ' + (data.message || 'Unknown error'));
+        alert('Error saving form: ' + (data.message || 'Server error occurred.'));
       }
     } catch (err) {
-      alert('Network error saving form: ' + err.message);
+      alert('Error saving form: ' + err.message);
     } finally {
       if (saveBtn) {
         saveBtn.disabled = false;
