@@ -26,7 +26,8 @@ class SSVSTestCase(unittest.TestCase):
             email='test@ssvs.edu',
             full_name='Dr. Test Evaluator',
             college_name='Testing Institute of Technology',
-            department='Computer Science'
+            department='Computer Science',
+            email_verified=True
         )
         self.teacher.set_password('SecretPass123!')
         db.session.add(self.teacher)
@@ -431,31 +432,55 @@ class SSVSTestCase(unittest.TestCase):
         updated = Teacher.query.filter_by(email=new_teacher.email).first()
         self.assertTrue(updated.check_password('BrandNewPassword2026!'))
 
-    def test_teacher_login_otp_flow(self):
-        """Test teacher login with 2-step SMTP OTP verification."""
+    def test_teacher_direct_login_without_otp(self):
+        """Test teacher direct login with email & password without OTP for verified account."""
         from app.models.otp import EmailOTP
 
-        # 1. Login with password -> triggers OTP send and redirect to verify-otp
+        # 1. Login with password -> directly logs in and redirects to dashboard (NO OTP)
         resp = self.client.post('/auth/login', data={
             'email': self.teacher.email,
             'password': 'SecretPass123!'
         }, follow_redirects=False)
         self.assertEqual(resp.status_code, 302)
-        self.assertIn('/auth/verify', resp.headers['Location'])
+        self.assertIn('/dashboard', resp.headers['Location'])
 
-        # Verify an active login OTP was generated
-        latest_otp = EmailOTP.query.filter_by(email=self.teacher.email, purpose='login', is_used=False).first()
-        self.assertIsNotNone(latest_otp)
+        # Verify NO login OTP was created
+        login_otps = EmailOTP.query.filter_by(email=self.teacher.email, purpose='login').count()
+        self.assertEqual(login_otps, 0)
 
-        # 2. Complete verification with OTP code
-        _, valid_code = EmailOTP.create_otp(self.teacher.email, purpose='login')
-        resp = self.client.post(
-            f'/auth/verify-otp?email={self.teacher.email}&purpose=login',
-            data={'otp_code': valid_code},
-            follow_redirects=True
+        # 2. Follow redirect and verify authenticated dashboard access
+        follow_resp = self.client.get(resp.headers['Location'])
+        self.assertEqual(follow_resp.status_code, 200)
+
+    def test_unverified_teacher_login_requires_registration_otp(self):
+        """Test that an unverified teacher account is prompted for registration OTP upon login."""
+        from app.models.otp import EmailOTP
+
+        unverified = Teacher(
+            email='unverified_prof@ssvs.edu',
+            full_name='Prof. Unverified',
+            college_name='NIT Trichy',
+            department='ECE',
+            email_verified=False
         )
-        self.assertEqual(resp.status_code, 200)
-        self.assertIn('Verification successful!', resp.get_data(as_text=True))
+        unverified.set_password('Pass123!')
+        db.session.add(unverified)
+        db.session.commit()
+
+        # Attempt login
+        resp = self.client.post('/auth/login', data={
+            'email': unverified.email,
+            'password': 'Pass123!'
+        }, follow_redirects=False)
+
+        # Should redirect to verify-otp for registration
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/auth/verify', resp.headers['Location'])
+        self.assertIn('purpose=registration', resp.headers['Location'])
+
+        # Verify registration OTP was created
+        otp = EmailOTP.query.filter_by(email=unverified.email, purpose='registration', is_used=False).first()
+        self.assertIsNotNone(otp)
 
     def test_delete_account_and_cascade_all_data(self):
         """Test that deleting a teacher account cascades and deletes all related forms, submissions, scores, logs, and OTPs."""

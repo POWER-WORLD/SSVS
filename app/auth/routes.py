@@ -15,7 +15,7 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """Teacher login: authenticates password and dispatches SMTP OTP."""
+    """Teacher login: direct email & password authentication (no OTP required for verified accounts)."""
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.overview'))
         
@@ -27,20 +27,34 @@ def login():
                 flash('Your account has been deactivated. Please contact support.', 'danger')
                 return render_template('auth/login.html', form=form)
                 
-            can_resend, _ = EmailOTP.can_resend(user.email, 'login', cooldown_seconds=60)
-            if can_resend:
-                _, raw_code = EmailOTP.create_otp(user.email, purpose='login', validity_minutes=10)
-                sent, msg = send_otp_code_email(user.email, raw_code, purpose='login', validity_minutes=10)
-                if not sent:
-                    flash(f'Notice: {msg}', 'warning')
+            # If teacher registered but hasn't completed email verification, prompt for registration OTP
+            if not user.email_verified:
+                can_resend, _ = EmailOTP.can_resend(user.email, 'registration', cooldown_seconds=60)
+                if can_resend:
+                    _, raw_code = EmailOTP.create_otp(user.email, purpose='registration', validity_minutes=10)
+                    send_otp_code_email(user.email, raw_code, purpose='registration', validity_minutes=10)
+                
+                session['pending_verification_email'] = user.email
+                session['pending_verification_purpose'] = 'registration'
+                flash(f'Your email is not verified yet. A verification code has been dispatched to {user.email}. Please verify your account to continue.', 'warning')
+                return redirect(url_for('auth.verify_otp', email=user.email, purpose='registration'))
             
-            session['pending_verification_email'] = user.email
-            session['pending_verification_purpose'] = 'login'
-            session['pending_login_remember'] = form.remember.data
-            session['pending_login_next'] = request.args.get('next')
+            # Direct sign-in for verified accounts (NO OTP REQUIRED)
+            login_user(user, remember=form.remember.data)
             
-            flash(f'Credentials verified! A 6-digit login verification code has been sent to {user.email}.', 'info')
-            return redirect(url_for('auth.verify_otp', email=user.email, purpose='login'))
+            db.session.add(ActivityLog(
+                teacher_id=user.id,
+                action='LOGIN_SUCCESS',
+                description=f'Teacher {user.full_name} signed in successfully',
+                ip_address=request.remote_addr
+            ))
+            db.session.commit()
+            
+            flash(f'Welcome back, Prof. {user.full_name}!', 'success')
+            next_page = request.args.get('next')
+            if next_page and next_page.startswith('/'):
+                return redirect(next_page)
+            return redirect(url_for('dashboard.overview'))
         else:
             flash('Invalid email or password. Please try again.', 'danger')
             
