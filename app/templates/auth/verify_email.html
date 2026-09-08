@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Email — SSVS{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+      <div class="card card-glass p-4 p-md-5 shadow-lg border-0">
+        
+        <!-- Header -->
+        <div class="text-center mb-4">
+          <div class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 64px; height: 64px; font-size: 1.75rem;">
+            {% if purpose == 'login' %}
+              <i class="bi bi-shield-lock-fill"></i>
+            {% else %}
+              <i class="bi bi-shield-check"></i>
+            {% endif %}
+          </div>
+          <h3 class="fw-bold mb-1">{% if purpose == 'login' %}Teacher Authentication{% else %}Verify Your Email{% endif %}</h3>
+          <p class="text-secondary small mb-2">We have sent a 6-digit verification code to:</p>
+          <div class="badge bg-body-secondary text-primary-emphasis px-3 py-2 fs-6 fw-semibold text-break border">
+            <i class="bi bi-envelope-at me-1"></i> {{ email }}
+          </div>
+        </div>
+
+        <!-- Verification Form -->
+        <form method="POST" action="{{ url_for('auth.verify_otp', email=email, purpose=purpose) }}" id="otp-verify-form">
+          {{ form.hidden_tag() }}
+          {{ form.otp_code(id="hidden-otp-input", type="hidden") }}
+
+          <!-- 6-Digit OTP Inputs -->
+          <div class="mb-4">
+            <label class="form-label small fw-bold text-center d-block text-secondary text-uppercase mb-3" style="letter-spacing: 0.5px;">
+              Enter 6-Digit {% if purpose == 'login' %}Login{% else %}Verification{% endif %} Code
+            </label>
+            <div class="d-flex justify-content-center gap-2" id="otp-boxes">
+              <input type="text" class="form-control text-center fs-3 fw-bold otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autofocus data-index="0" style="width: 48px; height: 56px; border-radius: 10px;">
+              <input type="text" class="form-control text-center fs-3 fw-bold otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" data-index="1" style="width: 48px; height: 56px; border-radius: 10px;">
+              <input type="text" class="form-control text-center fs-3 fw-bold otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" data-index="2" style="width: 48px; height: 56px; border-radius: 10px;">
+              <input type="text" class="form-control text-center fs-3 fw-bold otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" data-index="3" style="width: 48px; height: 56px; border-radius: 10px;">
+              <input type="text" class="form-control text-center fs-3 fw-bold otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" data-index="4" style="width: 48px; height: 56px; border-radius: 10px;">
+              <input type="text" class="form-control text-center fs-3 fw-bold otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="off" data-index="5" style="width: 48px; height: 56px; border-radius: 10px;">
+            </div>
+            {% for error in form.otp_code.errors %}
+              <div class="text-danger small text-center mt-2">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <!-- Expiry Countdown -->
+          <div class="text-center mb-4">
+            <span class="badge bg-warning-subtle text-warning-emphasis px-3 py-1 rounded-pill small border border-warning-subtle" id="expiry-badge">
+              <i class="bi bi-clock-history me-1"></i> Code expires in <span id="timer-display" class="fw-bold">10:00</span>
+            </span>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn btn-primary-gradient w-100 py-2 fs-6 fw-bold mb-3 shadow-sm" id="btn-submit-otp">
+            {% if purpose == 'login' %}
+              <i class="bi bi-box-arrow-in-right me-2"></i> Complete Sign In
+            {% else %}
+              <i class="bi bi-check2-circle me-2"></i> Verify & Activate Account
+            {% endif %}
+          </button>
+        </form>
+
+        <!-- Resend OTP Section -->
+        <div class="card bg-body-tertiary border p-3 rounded-3 text-center mb-3">
+          <div class="small text-secondary mb-2">Didn't receive the email? Check your spam folder or request a new code.</div>
+          <button type="button" 
+                  class="btn btn-outline-primary btn-sm py-2 px-3 fw-semibold" 
+                  id="btn-resend-otp"
+                  {% if not can_resend %}disabled{% endif %}>
+            <span id="btn-resend-spinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+            <i class="bi bi-arrow-clockwise me-1" id="btn-resend-icon"></i>
+            <span id="resend-label">
+              {% if can_resend %}
+                {% if purpose == 'login' %}Resend Login Code{% else %}Resend Verification Code{% endif %}
+              {% else %}
+                Resend Code in {{ cooldown }}s
+              {% endif %}
+            </span>
+          </button>
+          <div id="resend-feedback" class="small mt-2 d-none"></div>
+        </div>
+
+        <div class="text-center small text-secondary">
+          <a href="{{ url_for('auth.login') }}" class="text-decoration-none">
+            <i class="bi bi-arrow-left me-1"></i> Return to Sign In
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const boxes = Array.from(document.querySelectorAll('.otp-box'));
+  const hiddenInput = document.getElementById('hidden-otp-input');
+  const form = document.getElementById('otp-verify-form');
+  const resendBtn = document.getElementById('btn-resend-otp');
+  const resendLabel = document.getElementById('resend-label');
+  const resendFeedback = document.getElementById('resend-feedback');
+  const spinner = document.getElementById('btn-resend-spinner');
+  const resendIcon = document.getElementById('btn-resend-icon');
+  
+  // Sync digit boxes to hidden input
+  function updateHiddenInput() {
+    const code = boxes.map(b => b.value.trim()).join('');
+    hiddenInput.value = code;
+    return code;
+  }
+
+  // Handle Box Inputs
+  boxes.forEach((box, idx) => {
+    box.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/[^0-9]/g, '');
+      box.value = val ? val.slice(-1) : '';
+      const fullCode = updateHiddenInput();
+
+      if (box.value && idx < boxes.length - 1) {
+        boxes[idx + 1].focus();
+      }
+      
+      if (fullCode.length === 6) {
+        // Auto submit if all 6 digits entered
+        form.submit();
+      }
+    });
+
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !box.value && idx > 0) {
+        boxes[idx - 1].focus();
+      } else if (e.key === 'ArrowLeft' && idx > 0) {
+        boxes[idx - 1].focus();
+      } else if (e.key === 'ArrowRight' && idx < boxes.length - 1) {
+        boxes[idx + 1].focus();
+      }
+    });
+
+    // Handle Paste Event
+    box.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData).getData('text').trim().replace(/[^0-9]/g, '');
+      if (!pasteData) return;
+
+      for (let i = 0; i < boxes.length; i++) {
+        if (i < pasteData.length) {
+          boxes[i].value = pasteData[i];
+        }
+      }
+      const code = updateHiddenInput();
+      const focusTarget = Math.min(pasteData.length, boxes.length - 1);
+      boxes[focusTarget].focus();
+
+      if (code.length === 6) {
+        form.submit();
+      }
+    });
+  });
+
+  // Expiry Timer (10 minutes = 600 seconds)
+  let expirySeconds = 600;
+  const timerDisplay = document.getElementById('timer-display');
+  const expiryInterval = setInterval(() => {
+    expirySeconds--;
+    if (expirySeconds <= 0) {
+      clearInterval(expiryInterval);
+      timerDisplay.textContent = 'Expired';
+      document.getElementById('expiry-badge').className = 'badge bg-danger-subtle text-danger px-3 py-1 rounded-pill small border border-danger-subtle';
+    } else {
+      const mins = Math.floor(expirySeconds / 60);
+      const secs = expirySeconds % 60;
+      timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+  }, 1000);
+
+  // Resend Cooldown Countdown
+  let cooldown = parseInt("{{ cooldown }}") || 0;
+  let cooldownInterval = null;
+
+  function startCooldown(seconds) {
+    cooldown = seconds;
+    if (cooldown <= 0) {
+      resendBtn.disabled = false;
+      resendLabel.textContent = "Resend Verification Code";
+      return;
+    }
+
+    resendBtn.disabled = true;
+    resendLabel.textContent = `Resend Code in ${cooldown}s`;
+
+    if (cooldownInterval) clearInterval(cooldownInterval);
+    cooldownInterval = setInterval(() => {
+      cooldown--;
+      if (cooldown <= 0) {
+        clearInterval(cooldownInterval);
+        resendBtn.disabled = false;
+        resendLabel.textContent = "Resend Verification Code";
+      } else {
+        resendLabel.textContent = `Resend Code in ${cooldown}s`;
+      }
+    }, 1000);
+  }
+
+  if (cooldown > 0) {
+    startCooldown(cooldown);
+  }
+
+  // Handle Resend Click via AJAX
+  resendBtn.addEventListener('click', function() {
+    if (resendBtn.disabled) return;
+
+    resendBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    resendIcon.classList.add('d-none');
+    resendFeedback.classList.add('d-none');
+
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+    fetch("{{ url_for('auth.resend_otp') }}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken
+      },
+      body: JSON.stringify({
+        email: "{{ email }}",
+        purpose: "{{ purpose }}"
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      spinner.classList.add('d-none');
+      resendIcon.classList.remove('d-none');
+      resendFeedback.classList.remove('d-none');
+
+      if (data.success) {
+        resendFeedback.className = "small mt-2 text-success fw-bold";
+        resendFeedback.textContent = data.message || "A fresh verification code was sent to your email.";
+        startCooldown(data.cooldown || 60);
+        // Clear previous input
+        boxes.forEach(b => b.value = '');
+        updateHiddenInput();
+        boxes[0].focus();
+      } else {
+        resendFeedback.className = "small mt-2 text-danger fw-bold";
+        resendFeedback.textContent = data.message || "Failed to resend code.";
+        if (data.cooldown) {
+          startCooldown(data.cooldown);
+        } else {
+          resendBtn.disabled = false;
+        }
+      }
+    })
+    .catch(err => {
+      spinner.classList.add('d-none');
+      resendIcon.classList.remove('d-none');
+      resendFeedback.classList.remove('d-none');
+      resendFeedback.className = "small mt-2 text-danger";
+      resendFeedback.textContent = "Network error. Please try again.";
+      resendBtn.disabled = false;
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -36,6 +36,7 @@ class Form(db.Model):
     fields = db.relationship('FormField', backref='form', lazy='dynamic', cascade='all, delete-orphan', order_by='FormField.display_order')
     submissions = db.relationship('Submission', backref='form', lazy='dynamic', cascade='all, delete-orphan')
     formulas = db.relationship('ScoreFormula', backref='form', lazy='dynamic', cascade='all, delete-orphan')
+    leaderboard_entries = db.relationship('LeaderboardEntry', backref='parent_form', lazy='dynamic', cascade='all, delete-orphan')
 
     @property
     def submission_count(self):

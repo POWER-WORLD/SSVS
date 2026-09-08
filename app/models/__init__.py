@@ -17,7 +17,8 @@ from .submission import Submission, SubmissionValue
 from .platform_profile import PlatformProfile
 from .scoring import ScoreFormula, FormulaRule, CalculatedScore, LeaderboardEntry
 from .audit import ActivityLog
+from .otp import EmailOTP
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Teacher.query.get(int(user_id))
+    return db.session.get(Teacher, int(user_id))

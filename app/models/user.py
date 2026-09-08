@@ -16,6 +16,7 @@ class Teacher(UserMixin, db.Model):
     phone = db.Column(db.String(20), nullable=True)
     avatar_url = db.Column(db.String(300), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
+    email_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -39,6 +40,7 @@ class Teacher(UserMixin, db.Model):
             'designation': self.designation,
             'phone': self.phone,
             'avatar_url': self.avatar_url,
+            'email_verified': self.email_verified,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
 

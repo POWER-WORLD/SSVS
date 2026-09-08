@@ -9,6 +9,27 @@
     <div class="col-lg-7">
       <div class="card card-modern p-4">
         <h4 class="fw-bold mb-3"><i class="bi bi-person-gear text-primary me-2"></i> Faculty Profile</h4>
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-4 p-3 bg-body-tertiary rounded-3 border">
+          <div>
+            <div class="small text-secondary text-uppercase fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">Account Email Address</div>
+            <div class="fw-semibold text-break"><i class="bi bi-envelope-at text-primary me-1"></i> {{ current_user.email }}</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            {% if current_user.email_verified %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-semibold">
+                <i class="bi bi-patch-check-fill me-1"></i> Email Verified
+              </span>
+            {% else %}
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 fw-semibold">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> Unverified
+              </span>
+              <a href="{{ url_for('auth.verify_email', email=current_user.email, purpose='email_verification') }}" class="btn btn-sm btn-primary-gradient">
+                Verify with OTP
+              </a>
+            {% endif %}
+          </div>
+        </div>
+
         <form method="POST" action="{{ url_for('auth.profile') }}">
           {{ form.hidden_tag() }}
 
@@ -42,6 +63,54 @@
             <i class="bi bi-save me-1"></i> Save Changes
           </button>
         </form>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card border-danger-subtle bg-danger-subtle bg-opacity-10 p-4 mt-4 rounded-3 border">
+        <h5 class="fw-bold text-danger mb-2">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i> Danger Zone
+        </h5>
+        <p class="small text-secondary mb-3">
+          Permanently delete your faculty account and all associated forms, student submissions, evaluation scores, and platform records. This action cannot be undone.
+        </p>
+        <button type="button" class="btn btn-outline-danger btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+          <i class="bi bi-trash3-fill me-1"></i> Delete Account & Purge Data...
+        </button>
+      </div>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger shadow-lg">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title fw-bold" id="deleteAccountModalLabel">
+              <i class="bi bi-exclamation-octagon-fill me-2"></i> Confirm Account Deletion
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="POST" action="{{ url_for('auth.delete_account') }}">
+            <div class="modal-body">
+              <div class="alert alert-danger small mb-3">
+                <strong>Permanent Deletion Warning:</strong> You are about to permanently delete your account (<strong>{{ current_user.email }}</strong>).
+                All assessment forms, student submissions, scoring rules, and files will be permanently erased.
+              </div>
+              {{ delete_form.hidden_tag() }}
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Enter Your Current Password</label>
+                {{ delete_form.password(class="form-control form-control-modern", placeholder="Enter your current password") }}
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold">To confirm, type <span class="text-danger fw-bold">DELETE</span> below:</label>
+                {{ delete_form.confirm_phrase(class="form-control form-control-modern", placeholder="DELETE") }}
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+              {{ delete_form.submit(class="btn btn-danger btn-sm fw-bold") }}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 

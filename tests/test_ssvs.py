@@ -327,6 +327,272 @@ class SSVSTestCase(unittest.TestCase):
         self.assertIn('data:image/png;base64,', html)
         self.assertIn('Official Performance Scorecard', html)
 
+    def test_email_otp_lifecycle(self):
+        """Test OTP generation, SHA-256 hashing, attempt tracking, and verification."""
+        from app.models.otp import EmailOTP
+        
+        email = "pk0403564@gmail.com"
+        record, code = EmailOTP.create_otp(email, purpose='registration', validity_minutes=10)
+        
+        # Verify 6-digit numeric format
+        self.assertEqual(len(code), 6)
+        self.assertTrue(code.isdigit())
+        
+        # Verify hash match
+        self.assertEqual(record.otp_hash, EmailOTP.hash_code(code))
+        self.assertFalse(record.is_used)
+        
+        # Test wrong OTP increments attempts
+        valid, msg = EmailOTP.verify_otp(email, 'registration', '000000' if code != '000000' else '111111')
+        self.assertFalse(valid)
+        self.assertIn('attempt', msg)
+        
+        # Refresh record
+        record = db.session.get(EmailOTP, record.id)
+        self.assertEqual(record.attempts, 1)
+        
+        # Test correct OTP verifies
+        valid, msg = EmailOTP.verify_otp(email, 'registration', code)
+        self.assertTrue(valid)
+        
+        # Refresh record
+        record = db.session.get(EmailOTP, record.id)
+        self.assertTrue(record.is_used)
+        
+        # Cannot reuse verified OTP
+        valid_again, _ = EmailOTP.verify_otp(email, 'registration', code)
+        self.assertFalse(valid_again)
+
+    def test_otp_cooldown_rate_limiting(self):
+        """Test that requesting OTPs respects the 60-second cooldown."""
+        from app.models.otp import EmailOTP
+        
+        email = "pk0403564@gmail.com"
+        EmailOTP.create_otp(email, purpose='registration', validity_minutes=10)
+        
+        can_resend, remaining = EmailOTP.can_resend(email, 'registration', cooldown_seconds=60)
+        self.assertFalse(can_resend)
+        self.assertGreater(remaining, 0)
+        self.assertLessEqual(remaining, 60)
+
+    def test_auth_verify_email_and_password_reset(self):
+        """Test complete auth verification flow with EmailOTP."""
+        from app.models.otp import EmailOTP
+        
+        # Register a new unverified user
+        new_teacher = Teacher(
+            email='new_prof@ssvs.edu',
+            full_name='Prof. New Teacher',
+            college_name='IIT Delhi',
+            department='CSE',
+            email_verified=False
+        )
+        new_teacher.set_password('InitialPass123!')
+        db.session.add(new_teacher)
+        db.session.commit()
+        
+        # Generate OTP
+        _, code = EmailOTP.create_otp(new_teacher.email, purpose='registration')
+        
+        # Verify via route
+        with self.client.session_transaction() as sess:
+            sess['pending_verification_email'] = new_teacher.email
+            sess['pending_verification_purpose'] = 'registration'
+            
+        resp = self.client.post(
+            f'/auth/verify-email?email={new_teacher.email}&purpose=registration',
+            data={'otp_code': code},
+            follow_redirects=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        
+        # Verify user is now verified
+        updated = Teacher.query.filter_by(email=new_teacher.email).first()
+        self.assertTrue(updated.email_verified)
+        
+        # Log out before testing password reset
+        self.client.get('/auth/logout')
+        
+        # Test password reset OTP
+        _, reset_code = EmailOTP.create_otp(new_teacher.email, purpose='password_reset')
+        resp = self.client.post(
+            f'/auth/reset-password?email={new_teacher.email}',
+            data={
+                'email': new_teacher.email,
+                'otp_code': reset_code,
+                'password': 'BrandNewPassword2026!',
+                'confirm_password': 'BrandNewPassword2026!'
+            },
+            follow_redirects=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        
+        # Verify password changed
+        updated = Teacher.query.filter_by(email=new_teacher.email).first()
+        self.assertTrue(updated.check_password('BrandNewPassword2026!'))
+
+    def test_teacher_login_otp_flow(self):
+        """Test teacher login with 2-step SMTP OTP verification."""
+        from app.models.otp import EmailOTP
+
+        # 1. Login with password -> triggers OTP send and redirect to verify-otp
+        resp = self.client.post('/auth/login', data={
+            'email': self.teacher.email,
+            'password': 'SecretPass123!'
+        }, follow_redirects=False)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/auth/verify', resp.headers['Location'])
+
+        # Verify an active login OTP was generated
+        latest_otp = EmailOTP.query.filter_by(email=self.teacher.email, purpose='login', is_used=False).first()
+        self.assertIsNotNone(latest_otp)
+
+        # 2. Complete verification with OTP code
+        _, valid_code = EmailOTP.create_otp(self.teacher.email, purpose='login')
+        resp = self.client.post(
+            f'/auth/verify-otp?email={self.teacher.email}&purpose=login',
+            data={'otp_code': valid_code},
+            follow_redirects=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('Verification successful!', resp.get_data(as_text=True))
+
+    def test_delete_account_and_cascade_all_data(self):
+        """Test that deleting a teacher account cascades and deletes all related forms, submissions, scores, logs, and OTPs."""
+        from app.models.form import Form, FormField
+        from app.models.submission import Submission, SubmissionValue
+        from app.models.scoring import ScoreFormula, FormulaRule, CalculatedScore, LeaderboardEntry
+        from app.models.audit import ActivityLog
+        from app.models.otp import EmailOTP
+
+        # 1. Create a dedicated teacher to be deleted
+        teacher = Teacher(
+            email='delete_me@ssvs.edu',
+            full_name='Prof. To Be Deleted',
+            college_name='Testing University',
+            department='CSE'
+        )
+        teacher.set_password('DeletePass123!')
+        db.session.add(teacher)
+        db.session.commit()
+        teacher_id = teacher.id
+
+        # 2. Create form, field, submission, formula, scores, logs, and OTP
+        form = Form(teacher_id=teacher_id, title='Assessment To Delete', slug='delete-slug-test')
+        db.session.add(form)
+        db.session.commit()
+        form_id = form.id
+
+        field = FormField(form_id=form_id, field_key='github_username', label='GitHub', field_type='github', display_order=1)
+        db.session.add(field)
+
+        formula = ScoreFormula(form_id=form_id, name='Formula To Delete', is_active=True)
+        db.session.add(formula)
+        db.session.commit()
+
+        sub = Submission(form_id=form_id, student_name='Student To Delete', roll_number='DEL-01', email='del@student.edu')
+        db.session.add(sub)
+        db.session.commit()
+
+        sub_val = SubmissionValue(submission_id=sub.id, field_id=field.id, value_text='torvalds')
+        db.session.add(sub_val)
+
+        calc = CalculatedScore(submission_id=sub.id, formula_id=formula.id, total_score=85.0)
+        db.session.add(calc)
+
+        lb = LeaderboardEntry(form_id=form_id, submission_id=sub.id, rank=1, student_name='Student To Delete', roll_number='DEL-01', total_score=85.0)
+        db.session.add(lb)
+
+        log = ActivityLog(teacher_id=teacher_id, action='TEST_LOG', description='Test audit')
+        db.session.add(log)
+
+        EmailOTP.create_otp('delete_me@ssvs.edu', purpose='login')
+        db.session.commit()
+
+        # 3. Authenticate as this teacher
+        with self.client.session_transaction() as sess:
+            sess['_user_id'] = str(teacher_id)
+            sess['_fresh'] = True
+
+        # 4. Wrong password should fail deletion
+        resp = self.client.post('/auth/delete-account', data={
+            'password': 'WrongPassword!',
+            'confirm_phrase': 'DELETE'
+        }, follow_redirects=True)
+        self.assertIn('Incorrect password', resp.get_data(as_text=True))
+        self.assertIsNotNone(db.session.get(Teacher, teacher_id))
+
+        # 5. Wrong confirmation phrase should fail deletion
+        resp = self.client.post('/auth/delete-account', data={
+            'password': 'DeletePass123!',
+            'confirm_phrase': 'CANCEL'
+        }, follow_redirects=True)
+        self.assertIn('You must type DELETE', resp.get_data(as_text=True))
+        self.assertIsNotNone(db.session.get(Teacher, teacher_id))
+
+        # 6. Correct password and confirmation phrase should delete account and cascade
+        resp = self.client.post('/auth/delete-account', data={
+            'password': 'DeletePass123!',
+            'confirm_phrase': 'DELETE'
+        }, follow_redirects=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('permanently deleted', resp.get_data(as_text=True))
+
+        # 7. Verify all related data is purged
+        self.assertIsNone(db.session.get(Teacher, teacher_id))
+        self.assertEqual(Form.query.filter_by(teacher_id=teacher_id).count(), 0)
+        self.assertEqual(FormField.query.filter_by(form_id=form_id).count(), 0)
+        self.assertEqual(Submission.query.filter_by(form_id=form_id).count(), 0)
+        self.assertEqual(SubmissionValue.query.filter_by(submission_id=sub.id).count(), 0)
+        self.assertEqual(ScoreFormula.query.filter_by(form_id=form_id).count(), 0)
+        self.assertEqual(CalculatedScore.query.filter_by(submission_id=sub.id).count(), 0)
+        self.assertEqual(LeaderboardEntry.query.filter_by(form_id=form_id).count(), 0)
+        self.assertEqual(ActivityLog.query.filter_by(teacher_id=teacher_id).count(), 0)
+        self.assertEqual(EmailOTP.query.filter_by(email='delete_me@ssvs.edu').count(), 0)
+
+    def test_smtp_email_service_and_mock_dispatch(self):
+        """Test SMTP email sending, recipient validation, and SMTP mock transport."""
+        from unittest.mock import patch, MagicMock
+        from app.utils.email_service import send_smtp_email, send_otp_code_email, get_smtp_config
+
+        # 1. Invalid recipient email rejection
+        sent, err = send_smtp_email("", "Subject", "<p>Body</p>")
+        self.assertFalse(sent)
+        self.assertIn("Invalid recipient", err)
+
+        # 2. Testing mode mock dispatch (current app has TESTING=True)
+        sent, info = send_smtp_email("student@example.com", "Test Subject", "<p>Hello</p>", "Hello")
+        self.assertTrue(sent)
+        self.assertEqual(info, "mock-smtp-dispatched")
+
+        # 3. send_otp_code_email helper
+        sent, info = send_otp_code_email("faculty@example.com", "123456", purpose="login")
+        self.assertTrue(sent)
+        self.assertEqual(info, "mock-smtp-dispatched")
+
+        # 4. Mocking smtplib.SMTP for live transport simulation
+        with patch('app.utils.email_service.get_smtp_config') as mock_cfg:
+            mock_cfg.return_value = {
+                'host': 'smtp.gmail.com',
+                'port': 587,
+                'user': 'pk0403564@gmail.com',
+                'password': 'mock-app-password',
+                'use_tls': True,
+                'use_ssl': False,
+                'from_email': 'SSVS Verification <pk0403564@gmail.com>',
+                'is_testing': False
+            }
+            with patch('smtplib.SMTP') as mock_smtp_cls:
+                mock_server = MagicMock()
+                mock_smtp_cls.return_value.__enter__.return_value = mock_server
+
+                sent, status = send_smtp_email("test@example.com", "Live Subject", "<b>Content</b>")
+                self.assertTrue(sent)
+                self.assertEqual(status, "smtp-dispatched")
+                mock_server.starttls.assert_called_once()
+                mock_server.login.assert_called_once_with('pk0403564@gmail.com', 'mock-app-password')
+                mock_server.send_message.assert_called_once()
+
 if __name__ == '__main__':
     unittest.main()
 

@@ -22,16 +22,27 @@ class RegistrationForm(FlaskForm):
 
     def validate_email(self, email):
         user = Teacher.query.filter_by(email=email.data.lower().strip()).first()
-        if user:
-            raise ValidationError('An account with this email address already exists.')
+        if user and user.email_verified:
+            raise ValidationError('An account with this email address already exists. Please sign in.')
 
 class ForgotPasswordForm(FlaskForm):
     email = StringField('Registered Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Send Password Reset Instructions')
 
+class VerifyOTPForm(FlaskForm):
+    otp_code = StringField('Verification Code', validators=[
+        DataRequired(message="Verification code is required."),
+        Length(min=6, max=8, message="Code must be 6 digits.")
+    ])
+    submit = SubmitField('Verify Code')
+
 class ResetPasswordForm(FlaskForm):
-    password = PasswordField('New Password', validators=[DataRequired(), Length(min=6)])
-    confirm_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('password')])
+    otp_code = StringField('6-Digit Verification Code', validators=[
+        DataRequired(message="Verification code is required."),
+        Length(min=6, max=8, message="Code must be 6 digits.")
+    ])
+    password = PasswordField('New Password', validators=[DataRequired(), Length(min=6, message="Password must be at least 6 characters")])
+    confirm_password = PasswordField('Confirm New Password', validators=[DataRequired(), EqualTo('password', message="Passwords must match")])
     submit = SubmitField('Update Password')
 
 class ProfileForm(FlaskForm):
@@ -41,3 +52,16 @@ class ProfileForm(FlaskForm):
     designation = StringField('Designation', validators=[DataRequired(), Length(max=100)])
     phone = StringField('Contact Phone', validators=[Length(max=20)])
     submit = SubmitField('Save Profile Changes')
+
+class DeleteAccountForm(FlaskForm):
+    password = PasswordField('Confirm Password', validators=[
+        DataRequired(message="Please enter your account password to confirm deletion.")
+    ])
+    confirm_phrase = StringField('Type DELETE to confirm', validators=[
+        DataRequired(message="Please type DELETE in capital letters to confirm.")
+    ])
+    submit = SubmitField('Permanently Delete My Account & All Data')
+
+    def validate_confirm_phrase(self, field):
+        if field.data.strip().upper() != 'DELETE':
+            raise ValidationError('You must type DELETE to confirm.')

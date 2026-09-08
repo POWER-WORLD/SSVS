@@ -81,12 +81,15 @@ def create_app(config_name=None):
     def forbidden_error(error):
         return render_template('errors/403.html'), 403
 
-    # Idempotent schema migration for new columns
+    # Idempotent schema migration for new columns and tables
     with app.app_context():
         try:
+            db.create_all()
             from sqlalchemy import text, inspect
             inspector = inspect(db.engine)
-            if 'submissions' in inspector.get_table_names():
+            table_names = inspector.get_table_names()
+            
+            if 'submissions' in table_names:
                 cols = [c['name'] for c in inspector.get_columns('submissions')]
                 with db.engine.connect() as conn:
                     if 'verification_status' not in cols:
@@ -98,6 +101,13 @@ def create_app(config_name=None):
                     if 'last_modified_by' not in cols:
                         conn.execute(text("ALTER TABLE submissions ADD COLUMN last_modified_by VARCHAR(150)"))
                     conn.commit()
+
+            if 'teachers' in table_names:
+                cols = [c['name'] for c in inspector.get_columns('teachers')]
+                with db.engine.connect() as conn:
+                    if 'email_verified' not in cols:
+                        conn.execute(text("ALTER TABLE teachers ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"))
+                        conn.commit()
         except Exception as e:
             app.logger.warning(f"Schema upgrade notice: {e}")
 
