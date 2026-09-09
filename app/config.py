@@ -56,7 +56,6 @@ class Config:
     SMTP_USE_TLS = os.environ.get('SMTP_USE_TLS', 'True').lower() in ('true', '1', 'yes')
     SMTP_USE_SSL = os.environ.get('SMTP_USE_SSL', 'False').lower() in ('true', '1', 'yes')
     SMTP_FROM_EMAIL = os.environ.get('SMTP_FROM_EMAIL', '') or os.environ.get('SMTP_USER', 'SSVS Verification <noreply@ssvs.edu>')
-
     @classmethod
     def init_app(cls, app):
         pass

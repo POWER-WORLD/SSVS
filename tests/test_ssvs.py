@@ -607,7 +607,7 @@ class SSVSTestCase(unittest.TestCase):
                 'from_email': 'SSVS Verification <pk0403564@gmail.com>',
                 'is_testing': False
             }
-            with patch('smtplib.SMTP') as mock_smtp_cls:
+            with patch('app.utils.email_service.IPv4SMTP') as mock_smtp_cls:
                 mock_server = MagicMock()
                 mock_smtp_cls.return_value.__enter__.return_value = mock_server
 
@@ -617,6 +617,31 @@ class SSVSTestCase(unittest.TestCase):
                 mock_server.starttls.assert_called_once()
                 mock_server.login.assert_called_once_with('pk0403564@gmail.com', 'mock-app-password')
                 mock_server.send_message.assert_called_once()
+
+    def test_smtp_ipv4_and_render_block_resilience(self):
+        """Test IPv4 connection creation and Render Free tier SMTP block handling."""
+        from unittest.mock import patch, MagicMock
+        from app.utils.email_service import create_ipv4_connection, send_otp_code_email
+
+        # 1. Test IPv4 connection queries AF_INET
+        with patch('socket.getaddrinfo') as mock_gai, patch('socket.socket') as mock_sock_cls:
+            mock_gai.return_value = [
+                (2, 1, 6, '', ('142.250.190.108', 587))
+            ]
+            mock_sock = MagicMock()
+            mock_sock_cls.return_value = mock_sock
+
+            conn = create_ipv4_connection(('smtp.gmail.com', 587))
+            self.assertIsNotNone(conn)
+            mock_sock.connect.assert_called_once_with(('142.250.190.108', 587))
+
+        # 2. Render Free Tier [Errno 101] Network is unreachable resilience test
+        with patch('app.utils.email_service.send_smtp_email') as mock_smtp:
+            mock_smtp.return_value = (False, "Network error connecting to SMTP server: [Errno 101] Network is unreachable")
+            sent, msg = send_otp_code_email('prof@ssvs.edu', '654321', purpose='registration')
+            self.assertFalse(sent)
+            self.assertIn("Render Free plan blocks outbound SMTP", msg)
+            self.assertIn("654321", msg)
 
 if __name__ == '__main__':
     unittest.main()

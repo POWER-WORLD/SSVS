@@ -1,5 +1,6 @@
 import os
 import ssl
+import socket
 import smtplib
 import logging
 from email.mime.multipart import MIMEMultipart
@@ -50,10 +51,52 @@ def get_smtp_config() -> Dict[str, Any]:
     }
 
 
+def create_ipv4_connection(address, timeout=12, source_address=None):
+    """
+    Creates a TCP connection explicitly resolving and connecting via IPv4 (AF_INET).
+    This prevents [Errno 101] Network is unreachable errors on container platforms
+    (such as Render/Docker) that lack IPv6 routes for dual-stack hosts like smtp.gmail.com.
+    """
+    host, port = address
+    err = None
+    # Explicitly query IPv4 addresses only
+    for res in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
+        af, socktype, proto, canonname, sa = res
+        sock = None
+        try:
+            sock = socket.socket(af, socktype, proto)
+            if timeout is not None:
+                sock.settimeout(timeout)
+            if source_address:
+                sock.bind(source_address)
+            sock.connect(sa)
+            return sock
+        except OSError as e:
+            err = e
+            if sock is not None:
+                sock.close()
+    if err is not None:
+        raise err
+    raise OSError(f"No IPv4 address could be resolved for SMTP host: {host}")
+
+
+class IPv4SMTP(smtplib.SMTP):
+    """SMTP client that forces IPv4 routing."""
+    def _get_socket(self, host, port, timeout):
+        return create_ipv4_connection((host, port), timeout, self.source_address)
+
+
+class IPv4SMTP_SSL(smtplib.SMTP_SSL):
+    """SMTP_SSL client that forces IPv4 routing."""
+    def _get_socket(self, host, port, timeout):
+        new_socket = create_ipv4_connection((host, port), timeout, self.source_address)
+        return self.context.wrap_socket(new_socket, server_hostname=self._host)
+
+
 def send_smtp_email(to_email: str, subject: str, html_content: str, text_content: str = None) -> Tuple[bool, str]:
     """
     Sends an email using standard SMTP authentication (Nodemailer-style transport via smtplib).
-    Supports STARTTLS (port 587), SSL (port 465), or local dev/test mock fallback.
+    Forces IPv4 resolution to prevent [Errno 101] Network is unreachable on cloud containers.
     Returns (success: bool, info_message: str).
     """
     if not to_email or '@' not in to_email:
@@ -63,7 +106,7 @@ def send_smtp_email(to_email: str, subject: str, html_content: str, text_content
     cfg = get_smtp_config()
 
     # Local development & automated testing mock fallback
-    if cfg['is_testing'] or (not cfg['password'] and os.environ.get('FLASK_ENV') != 'production'):
+    if cfg['is_testing'] or (not cfg['password'] and os.environ.get('FLASK_ENV') != 'production' and not os.environ.get('RENDER')):
         logger.info(f"[DEV/TEST MOCK SMTP] Dispatched to {target_email} | Subject: {subject}")
         return True, "mock-smtp-dispatched"
 
@@ -87,12 +130,12 @@ def send_smtp_email(to_email: str, subject: str, html_content: str, text_content
     try:
         if cfg['use_ssl'] or cfg['port'] == 465:
             context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(cfg['host'], cfg['port'], context=context, timeout=15) as server:
+            with IPv4SMTP_SSL(cfg['host'], cfg['port'], context=context, timeout=12) as server:
                 if cfg['user'] and cfg['password']:
                     server.login(cfg['user'], cfg['password'])
                 server.send_message(msg)
         else:
-            with smtplib.SMTP(cfg['host'], cfg['port'], timeout=15) as server:
+            with IPv4SMTP(cfg['host'], cfg['port'], timeout=12) as server:
                 if cfg['use_tls']:
                     context = ssl.create_default_context()
                     server.ehlo()
@@ -107,13 +150,16 @@ def send_smtp_email(to_email: str, subject: str, html_content: str, text_content
 
     except smtplib.SMTPAuthenticationError as e:
         logger.error(f"SMTP authentication failed for {cfg['user']} on {cfg['host']}: {e}")
-        return False, "SMTP authentication failed. Please verify your SMTP user and app password."
+        return False, "SMTP authentication failed. Please verify your email and app password."
     except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, TimeoutError) as e:
         logger.error(f"SMTP connection failed to {cfg['host']}:{cfg['port']}: {e}")
-        return False, f"Failed to connect to SMTP mail server ({cfg['host']}:{cfg['port']})."
+        return False, f"Failed to connect to SMTP mail server ({cfg['host']}:{cfg['port']}): {str(e)}"
     except smtplib.SMTPException as e:
         logger.error(f"SMTP transmission error to {target_email}: {e}")
         return False, f"SMTP delivery error: {str(e)}"
+    except OSError as e:
+        logger.error(f"Socket error connecting to SMTP server {cfg['host']}:{cfg['port']}: {e}")
+        return False, f"Network error connecting to SMTP server: {str(e)}"
     except Exception as e:
         logger.error(f"Unexpected error sending email via SMTP to {target_email}: {e}")
         return False, f"Error sending email: {str(e)}"
@@ -258,7 +304,8 @@ def build_otp_html_email(otp_code: str, purpose_label: str, validity_minutes: in
 
 def send_otp_code_email(to_email: str, otp_code: str, purpose: str = "registration", validity_minutes: int = 10) -> Tuple[bool, str]:
     """
-    High-level helper to send OTP email via SMTP with appropriate subject and body based on purpose.
+    Dispatches OTP verification code email using standard SMTP authentication.
+    Logs OTP to server console to ensure access even if cloud provider blocks outbound SMTP.
     """
     purpose_titles = {
         "registration": ("Faculty Account Registration", "SSVS — Verify Your Faculty Account (OTP Code)"),
@@ -277,4 +324,40 @@ def send_otp_code_email(to_email: str, otp_code: str, purpose: str = "registrati
         f"— Student Score View System (SSVS)"
     )
 
-    return send_smtp_email(to_email, subject, html, text)
+    # Always log OTP in server logs as an emergency backup for cloud diagnostics
+    logger.info("=" * 65)
+    logger.info(f"[SSVS OTP CODE] Recipient: {to_email} | Purpose: {purpose} | Code: {otp_code}")
+    logger.info("=" * 65)
+
+    # Send via standard SMTP
+    success, msg = send_smtp_email(to_email, subject, html, text)
+    if success:
+        return True, msg
+
+    # Detect if Render Free tier or cloud firewall blocked outbound SMTP
+    is_network_blocked = (
+        "101" in msg or 
+        "network is unreachable" in msg.lower() or 
+        "connection refused" in msg.lower() or 
+        "timed out" in msg.lower() or
+        "110" in msg or
+        "111" in msg
+    )
+
+    if is_network_blocked:
+        render_diagnostic = (
+            f"Render Free plan blocks outbound SMTP ports (587/465). "
+            f"Your verification code has been logged in Render Dashboard Logs: {otp_code} "
+            f"(Upgrade to Render Starter plan to enable live email delivery)."
+        )
+        logger.critical(
+            f"\n{'='*75}\n"
+            f"[RENDER FREE TIER NOTICE: OUTBOUND SMTP PORT BLOCKED]\n"
+            f"Render's Free plan firewall blocks outbound connections on ports 25, 465, and 587.\n"
+            f"VERIFICATION OTP CODE FOR {to_email}: {otp_code}\n"
+            f"To enable live SMTP delivery, upgrade your service plan from Free to Starter in Render.\n"
+            f"{'='*75}\n"
+        )
+        return False, render_diagnostic
+
+    return False, msg

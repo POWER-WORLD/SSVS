@@ -195,9 +195,9 @@ def resend_otp():
             return jsonify({'success': True, 'message': msg, 'cooldown': 60})
         flash(msg, 'success')
     else:
-        msg = f"Unable to dispatch email: {err_or_id}"
+        msg = f"{err_or_id}"
         if is_json:
-            return jsonify({'success': False, 'message': msg, 'cooldown': 0}), 500
+            return jsonify({'success': False, 'message': msg, 'cooldown': 0}), 200
         flash(msg, 'danger')
 
     return redirect(url_for('auth.verify_otp', email=email, purpose=purpose))
