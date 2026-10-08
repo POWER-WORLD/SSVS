@@ -1,5 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models import db
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class ScoreFormula(db.Model):
     __tablename__ = 'score_formulas'
@@ -11,8 +14,8 @@ class ScoreFormula(db.Model):
     normalization_method = db.Column(db.String(50), default='min_max')  # 'min_max', 'percentile', 'z_score', 'weighted_sum'
     max_total_marks = db.Column(db.Float, default=100.0)
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     # Relationships
     rules = db.relationship('FormulaRule', backref='formula', lazy='dynamic', cascade='all, delete-orphan')
@@ -83,7 +86,7 @@ class CalculatedScore(db.Model):
     grade = db.Column(db.String(10), default='A')
     
     breakdown_json = db.Column(db.JSON, nullable=True, default=dict)
-    calculated_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    calculated_at = db.Column(db.DateTime, default=utc_now, index=True)
 
     def to_dict(self):
         return {
@@ -120,7 +123,7 @@ class LeaderboardEntry(db.Model):
     coding_score = db.Column(db.Float, default=0.0)
     github_score = db.Column(db.Float, default=0.0)
     badge_count = db.Column(db.Integer, default=0)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=utc_now)
 
     # Relationships
     submission = db.relationship('Submission', backref='leaderboard_entries')

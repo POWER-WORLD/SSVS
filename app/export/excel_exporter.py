@@ -1,8 +1,9 @@
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timezone
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from app.models import db
 from app.models.form import Form
 from app.models.submission import Submission
 from app.models.scoring import LeaderboardEntry, CalculatedScore
@@ -90,7 +91,7 @@ class ExcelExporter:
         # Metadata banner
         ws.merge_cells("A2:K2")
         sub_cell = ws["A2"]
-        sub_cell.value = f"College: {form.teacher.college_name} | Department: {form.teacher.department} | Teacher: {form.teacher.full_name} | Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
+        sub_cell.value = f"College: {form.teacher.college_name} | Department: {form.teacher.department} | Teacher: {form.teacher.full_name} | Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
         sub_cell.font = Font(name="Calibri", size=10, italic=True, color="E2E8F0")
         sub_cell.fill = cls.SUBHEADER_FILL
         sub_cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -110,7 +111,10 @@ class ExcelExporter:
             cell.border = cls.THIN_BORDER
 
         # Entries
-        entries = LeaderboardEntry.query.filter_by(form_id=form.id).order_by(LeaderboardEntry.rank.asc()).all()
+        entries = LeaderboardEntry.query.filter_by(form_id=form.id).options(
+            db.selectinload(LeaderboardEntry.submission)
+        ).order_by(LeaderboardEntry.rank.asc()).all()
+        Submission.preload_for_list([e.submission for e in entries if e.submission])
         for i, entry in enumerate(entries):
             sub = entry.submission
             calc = sub.latest_score if sub else None
@@ -222,6 +226,7 @@ class ExcelExporter:
                 query = query.filter(Submission.id.in_(clean_ids))
 
         submissions = query.order_by(Submission.submitted_at.desc()).all()
+        Submission.preload_for_list(submissions)
 
         # Build column definitions dictionary
         col_defs = {
@@ -310,7 +315,7 @@ class ExcelExporter:
         # Subtitle
         ws.merge_cells(f"A2:{last_col_letter}2")
         sub_cell = ws["A2"]
-        sub_cell.value = f"Exported: {len(submissions)} Students | {num_cols} Columns | Generated on {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
+        sub_cell.value = f"Exported: {len(submissions)} Students | {num_cols} Columns | Generated on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
         sub_cell.font = Font(name="Calibri", size=10, italic=True, color="E2E8F0")
         sub_cell.fill = cls.SUBHEADER_FILL
         sub_cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -331,7 +336,7 @@ class ExcelExporter:
         # Rows
         for i, s in enumerate(submissions):
             score = s.latest_score
-            profiles = {p.platform_name.lower(): p for p in s.platform_profiles.all()}
+            profiles = {p.platform_name.lower(): p for p in s.platform_profiles_list}
             
             row_data = []
             for c in active_cols:
@@ -499,12 +504,14 @@ class ExcelExporter:
             cell.alignment = Alignment(horizontal="center", vertical="center")
             cell.border = cls.THIN_BORDER
 
-        for i, s in enumerate(form.submissions.all()):
+        submissions = form.submissions.order_by(Submission.id.asc()).all()
+        Submission.preload_for_list(submissions)
+        for i, s in enumerate(submissions):
             lc_solved = lc_rating = cc_rating = cc_stars = cf_rating = gh_repos = gh_stars = hr_badges = 0
             gfg_score = atc_rating = ib_score = kaggle_medals = 0
             cf_rank = 'unrated'
             
-            for p in s.platform_profiles.all():
+            for p in s.platform_profiles_list:
                 raw = p.raw_data or {}
                 p_name = p.platform_name.lower()
                 if p_name == 'leetcode':

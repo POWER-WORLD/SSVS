@@ -1,7 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.models import db
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class Teacher(UserMixin, db.Model):
     __tablename__ = 'teachers'
@@ -17,8 +20,8 @@ class Teacher(UserMixin, db.Model):
     avatar_url = db.Column(db.String(300), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     email_verified = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     
     # Relationships
     forms = db.relationship('Form', backref='teacher', lazy='dynamic', cascade='all, delete-orphan')

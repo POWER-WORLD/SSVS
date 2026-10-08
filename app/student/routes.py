@@ -1,14 +1,19 @@
 import os
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from werkzeug.utils import secure_filename
 from app.models import db
+from app.models.user import Teacher
 from app.models.form import Form, FormField
 from app.models.submission import Submission, SubmissionValue
 from app.models.scoring import LeaderboardEntry, CalculatedScore
 from app.utils.background import queue_submission_processing
 from app.utils.security import is_allowed_file
 from app.utils.qrcode_gen import generate_qr_base64
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 student_bp = Blueprint('student', __name__)
 
@@ -19,12 +24,13 @@ def view_form(slug):
         return render_template('student/form_closed.html', form=form, reason="This assessment form is currently in draft mode and has not been published yet.")
     if form.is_closed:
         return render_template('student/form_closed.html', form=form, reason="This assessment form has been closed by the instructor.")
-    if form.deadline and datetime.utcnow() > form.deadline:
+    if form.deadline and utc_now() > form.deadline:
         return render_template('student/form_closed.html', form=form, reason=f"The deadline for this assessment passed on {form.deadline.strftime('%b %d, %Y %I:%M %p')}.")
     if form.max_responses and form.submission_count >= form.max_responses:
         return render_template('student/form_closed.html', form=form, reason="This form has reached its maximum response capacity.")
 
     fields = form.fields.order_by(FormField.display_order.asc()).all()
+    FormField.preload_for_fields(fields)
     
     # Group fields by section title
     sections = {}
@@ -158,7 +164,7 @@ def view_scorecard(uuid):
     profiles = submission.platform_profiles.all()
     
     # Total candidates count for cohort context
-    total_candidates = form.submissions.count()
+    total_candidates = form.submission_count
     
     # Verification URL & QR code
     verify_url = url_for('student.view_scorecard', uuid=submission.uuid, _external=True)
@@ -191,7 +197,7 @@ def public_leaderboard_search():
     q = request.args.get('q', '').strip()
     college = request.args.get('college', '').strip()
     
-    query = Form.query.filter_by(is_published=True, enable_leaderboard=True)
+    query = Form.query.options(db.joinedload(Form.teacher)).filter_by(is_published=True, enable_leaderboard=True)
     if q:
         query = query.filter(
             db.or_(
@@ -203,8 +209,17 @@ def public_leaderboard_search():
         query = query.join(Form.teacher).filter(Form.teacher.has(college_name=college))
         
     forms = query.order_by(Form.created_at.desc()).all()
+    form_ids = [f.id for f in forms]
+    if form_ids:
+        counts = dict(
+            db.session.query(Submission.form_id, db.func.count(Submission.id))
+            .filter(Submission.form_id.in_(form_ids))
+            .group_by(Submission.form_id).all()
+        )
+        for f in forms:
+            f._submission_count_cache = counts.get(f.id, 0)
     
-    colleges = [c[0] for c in db.session.query(Form.teacher).join(Form).with_entities(Form.teacher.property.mapper.class_.college_name).distinct().all()] if forms else []
+    colleges = [c[0] for c in db.session.query(Teacher.college_name).filter(Teacher.college_name.isnot(None)).distinct().all() if c[0]] if forms else []
     
     return render_template('leaderboard/public_search.html', forms=forms, query=q, colleges=colleges)
 
@@ -229,7 +244,7 @@ def view_leaderboard(slug):
             )
         )
 
-    entries = query.order_by(LeaderboardEntry.rank.asc()).all()
+    entries = query.options(db.selectinload(LeaderboardEntry.submission)).order_by(LeaderboardEntry.rank.asc()).all()
     
     # Top 3 podium
     top3 = entries[:3]

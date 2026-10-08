@@ -643,6 +643,263 @@ class SSVSTestCase(unittest.TestCase):
             self.assertIn("Render Free plan blocks outbound SMTP", msg)
             self.assertIn("654321", msg)
 
+    def test_analytics_dashboard_and_export(self):
+        """Verify analytics dashboard computations and full Excel export generation."""
+        from io import BytesIO
+        import openpyxl
+        from app.models.platform_profile import PlatformProfile
+        from app.models.scoring import LeaderboardEntry, CalculatedScore
+
+        form = Form(teacher_id=self.teacher.id, title='Analytics Cohort 2026', slug='analytics-cohort-2026', is_published=True)
+        db.session.add(form)
+        db.session.flush()
+
+        # Create two submissions with multiple coding platforms
+        sub1 = Submission(form_id=form.id, student_name='Ada Lovelace', roll_number='CS001', email='ada@cs.edu', department='Computer Science', cgpa=9.5)
+        sub2 = Submission(form_id=form.id, student_name='Alan Turing', roll_number='CS002', email='alan@cs.edu', department='Data Science', cgpa=9.8)
+        db.session.add_all([sub1, sub2])
+        db.session.flush()
+
+        # Add profiles for LeetCode, GitHub, Codeforces, AtCoder, InterviewBit, Kaggle, GFG, HackerRank
+        db.session.add(PlatformProfile(submission_id=sub1.id, platform_name='leetcode', username='ada_lc', problems_solved=250, contest_rating=1850))
+        db.session.add(PlatformProfile(submission_id=sub1.id, platform_name='github', username='ada_gh', problems_solved=20, raw_data={'stars_earned': 15, 'contributions_year': 350}))
+        db.session.add(PlatformProfile(submission_id=sub1.id, platform_name='atcoder', username='ada_atc', contest_rating=1200))
+        db.session.add(PlatformProfile(submission_id=sub1.id, platform_name='interviewbit', username='ada_ib', contest_rating=500, problems_solved=80))
+
+        db.session.add(PlatformProfile(submission_id=sub2.id, platform_name='codechef', username='turing_cc', contest_rating=1900, stars_or_badges=4))
+        db.session.add(PlatformProfile(submission_id=sub2.id, platform_name='codeforces', username='turing_cf', contest_rating=1650, raw_data={'rank': 'expert'}))
+        db.session.add(PlatformProfile(submission_id=sub2.id, platform_name='kaggle', username='turing_kg', stars_or_badges=3, raw_data={'tier': 'Expert'}))
+        db.session.add(PlatformProfile(submission_id=sub2.id, platform_name='gfg', username='turing_gfg', problems_solved=110, raw_data={'coding_score': 320}))
+        db.session.add(PlatformProfile(submission_id=sub2.id, platform_name='hackerrank', username='turing_hr', stars_or_badges=5, raw_data={'badges_count': 5}))
+
+        formula = ScoreFormula(form_id=form.id, name='Test Analytics Formula', is_active=True)
+        db.session.add(formula)
+        db.session.flush()
+
+        # Add calculated scores and leaderboard entries
+        db.session.add(CalculatedScore(submission_id=sub1.id, formula_id=formula.id, total_score=92.5, grade='O', percentile=100.0, rank=1))
+        db.session.add(CalculatedScore(submission_id=sub2.id, formula_id=formula.id, total_score=88.0, grade='A+', percentile=50.0, rank=2))
+        db.session.add(LeaderboardEntry(form_id=form.id, submission_id=sub1.id, rank=1, student_name=sub1.student_name, roll_number=sub1.roll_number, department=sub1.department, cgpa=sub1.cgpa, coding_score=45.0, github_score=15.0, total_score=92.5, percentile=100.0))
+        db.session.add(LeaderboardEntry(form_id=form.id, submission_id=sub2.id, rank=2, student_name=sub2.student_name, roll_number=sub2.roll_number, department=sub2.department, cgpa=sub2.cgpa, coding_score=42.0, github_score=10.0, total_score=88.0, percentile=50.0))
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess['_user_id'] = str(self.teacher.id)
+            sess['_fresh'] = True
+
+        # Test analytics dashboard view
+        resp = self.client.get(f'/analytics/{form.id}')
+        self.assertEqual(resp.status_code, 200)
+        content = resp.get_data(as_text=True)
+        self.assertIn('Ada Lovelace', content)
+        self.assertIn('Alan Turing', content)
+        self.assertIn('LeetCode', content)
+
+        # Test full Excel export download
+        excel_resp = self.client.get(f'/analytics/{form.id}/export/excel')
+        self.assertEqual(excel_resp.status_code, 200)
+        self.assertIn('spreadsheetml.sheet', excel_resp.content_type)
+        
+        # Verify valid openpyxl workbook structure with all 4 sheets
+        wb = openpyxl.load_workbook(BytesIO(excel_resp.data))
+        self.assertIn("Leaderboard & Ranks", wb.sheetnames)
+        self.assertIn("Raw Submissions", wb.sheetnames)
+        self.assertIn("Coding Platform Stats", wb.sheetnames)
+        self.assertIn("Executive Analytics", wb.sheetnames)
+
+        lb_sheet = wb["Leaderboard & Ranks"]
+        self.assertEqual(lb_sheet.cell(row=5, column=2).value, "Ada Lovelace")
+
+    def test_custom_excel_export_route(self):
+        """Verify custom export route with selected columns and candidate filtering."""
+        from io import BytesIO
+        import openpyxl
+
+        form = Form(teacher_id=self.teacher.id, title='Custom Export Cohort', slug='custom-export-cohort', is_published=True)
+        db.session.add(form)
+        db.session.flush()
+
+        s1 = Submission(form_id=form.id, student_name='Grace Hopper', roll_number='GH01', email='grace@navy.mil', department='ECE', cgpa=9.9)
+        s2 = Submission(form_id=form.id, student_name='Claude Shannon', roll_number='CS01', email='claude@bell.labs', department='Math', cgpa=9.7)
+        db.session.add_all([s1, s2])
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess['_user_id'] = str(self.teacher.id)
+            sess['_fresh'] = True
+
+        resp = self.client.post(f'/forms/{form.id}/export/custom-excel', data={
+            'columns': ['student_name', 'roll_number', 'cgpa', 'department'],
+            'selected_ids': [str(s1.id)]
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('spreadsheetml.sheet', resp.content_type)
+
+        wb = openpyxl.load_workbook(BytesIO(resp.data))
+        ws = wb.active
+        self.assertEqual(ws.cell(row=3, column=1).value, "Student Name")
+        self.assertEqual(ws.cell(row=4, column=1).value, "Grace Hopper")
+
+    def test_batch_preloading_performance_helpers(self):
+        """Verify Submission.preload_for_list and FormField.preload_for_fields."""
+        from app.models.platform_profile import PlatformProfile
+        from app.models.scoring import ScoreFormula, CalculatedScore
+
+        form = Form(teacher_id=self.teacher.id, title='Batch Preload Form', slug='preload-form')
+        db.session.add(form)
+        db.session.flush()
+
+        f1 = FormField(form_id=form.id, field_key='gender', label='Gender', field_type='dropdown', display_order=1)
+        f2 = FormField(form_id=form.id, field_key='degree', label='Degree', field_type='dropdown', display_order=2)
+        db.session.add_all([f1, f2])
+        db.session.flush()
+
+        opt1 = FieldOption(field_id=f1.id, label='Female', value='female', display_order=1)
+        opt2 = FieldOption(field_id=f2.id, label='B.Tech', value='btech', display_order=1)
+        db.session.add_all([opt1, opt2])
+
+        sub = Submission(form_id=form.id, student_name='John von Neumann', roll_number='VN01', email='john@princeton.edu')
+        db.session.add(sub)
+        db.session.flush()
+
+        formula = ScoreFormula(form_id=form.id, name='Preload Formula', is_active=True)
+        db.session.add(formula)
+        db.session.flush()
+
+        prof = PlatformProfile(submission_id=sub.id, platform_name='leetcode', username='neumann_lc', problems_solved=400)
+        calc = CalculatedScore(submission_id=sub.id, formula_id=formula.id, total_score=99.0, rank=1)
+        db.session.add_all([prof, calc])
+        db.session.commit()
+
+        # Test FormField preloading
+        fields = FormField.query.filter_by(form_id=form.id).all()
+        FormField.preload_for_fields(fields)
+        self.assertTrue(hasattr(fields[0], '_preloaded_options'))
+        self.assertEqual(len(fields[0].options_list), 1)
+
+        # Test Submission preloading
+        subs = Submission.query.filter_by(form_id=form.id).all()
+        Submission.preload_for_list(subs)
+        self.assertTrue(hasattr(subs[0], '_preloaded_profiles'))
+        self.assertEqual(len(subs[0].platform_profiles_list), 1)
+        self.assertEqual(subs[0].latest_score.total_score, 99.0)
+
+    def test_all_platform_extractors_and_normalizer(self):
+        """Verify all 10 platform extractors and Normalizer calculation bounds."""
+        from app.extractors.mock_simulator import MockSimulator
+        from app.extractors.schema import UnifiedStudentStats
+
+        lc = MockSimulator.simulate_leetcode('neal_wu')
+        cc = MockSimulator.simulate_codechef('chef_master')
+        cf = MockSimulator.simulate_codeforces('tourist')
+        gh = MockSimulator.simulate_github('octocat')
+        hr = MockSimulator.simulate_hackerrank('hr_guru')
+        gfg = MockSimulator.simulate_gfg('geeks_ninja')
+        atc = MockSimulator.simulate_atcoder('chokudai')
+        ib = MockSimulator.simulate_interviewbit('ib_ace')
+        kg = MockSimulator.simulate_kaggle('grandmaster')
+
+        stats = UnifiedStudentStats(
+            leetcode=lc, codechef=cc, codeforces=cf, github=gh,
+            hackerrank=hr, gfg=gfg, atcoder=atc, interviewbit=ib, kaggle=kg,
+            cgpa=9.2, backlogs=0
+        )
+
+        self.assertGreater(stats.leetcode.total_solved, 0)
+        self.assertGreater(stats.codechef.current_rating, 0)
+        self.assertGreater(stats.codeforces.rating, 0)
+        self.assertGreater(stats.github.public_repos, 0)
+        self.assertGreater(stats.hackerrank.badges_count, 0)
+        self.assertGreater(stats.gfg.coding_score, 0)
+        self.assertGreater(stats.atcoder.current_rating, 0)
+        self.assertGreater(stats.interviewbit.score, 0)
+        self.assertGreater(stats.kaggle.total_medals, 0)
+
+        # Verify Normalizer bounds
+        val = Normalizer.min_max(1500, min_val=1000, max_val=2000, target_min=0.0, target_max=100.0)
+        self.assertEqual(val, 50.0)
+
+        percentiles = Normalizer.calculate_percentiles([50.0, 70.0, 85.0, 90.0])
+        self.assertEqual(len(percentiles), 4)
+        self.assertGreaterEqual(percentiles[2], 50.0)
+        self.assertLessEqual(percentiles[2], 100.0)
+
+    def test_api_endpoints_crud_and_status(self):
+        """Verify Form Fields API (GET & POST) and Submission Status API."""
+        form = Form(teacher_id=self.teacher.id, title='API Assessment Form', slug='api-assessment-slug', is_published=True)
+        db.session.add(form)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess['_user_id'] = str(self.teacher.id)
+            sess['_fresh'] = True
+
+        # Test Save Fields API
+        save_payload = {
+            'fields': [
+                {
+                    'label': 'LeetCode Username',
+                    'field_key': 'leetcode_username',
+                    'field_type': 'leetcode',
+                    'is_required': True,
+                    'platform_metric_binding': 'leetcode'
+                },
+                {
+                    'label': 'Preferred Track',
+                    'field_key': 'track',
+                    'field_type': 'dropdown',
+                    'options': ['AI/ML', 'Full Stack', 'Cybersecurity']
+                }
+            ]
+        }
+        save_resp = self.client.post(f'/api/form/{form.id}/save-fields', json=save_payload)
+        self.assertEqual(save_resp.status_code, 200)
+        saved_data = save_resp.get_json()
+        self.assertEqual(saved_data['status'], 'success')
+        self.assertEqual(len(saved_data['fields']), 2)
+
+        # Test Get Fields API
+        get_resp = self.client.get(f'/api/form/{form.id}/fields')
+        self.assertEqual(get_resp.status_code, 200)
+        fields_data = get_resp.get_json()
+        self.assertEqual(len(fields_data['fields']), 2)
+
+        # Test Submission Status API
+        sub = Submission(form_id=form.id, student_name='Grace', roll_number='G01', email='g@test.edu', status='completed')
+        db.session.add(sub)
+        db.session.commit()
+
+        status_resp = self.client.get(f'/api/submission/{sub.uuid}/status')
+        self.assertEqual(status_resp.status_code, 200)
+        st_data = status_resp.get_json()
+        self.assertEqual(st_data['status'], 'completed')
+        self.assertEqual(st_data['student_name'], 'Grace')
+
+    def test_landing_page_ui_and_single_login_entry(self):
+        """Verify redesigned landing page: 200 OK, rich non-repeating UI, and strictly 1 login entry."""
+        import re
+        resp = self.client.get('/')
+        self.assertEqual(resp.status_code, 200)
+        html = resp.get_data(as_text=True)
+
+        # 1. Structural and feature assertions
+        self.assertIn('Unified Placement Intelligence', html)
+        self.assertIn('simulator-tabs', html)
+        self.assertIn('Harvester', html)
+        self.assertIn('Score Matrix', html)
+        self.assertIn('Verified QR', html)
+        self.assertIn('Dynamic Form Studio', html)
+        self.assertIn('Multi-Platform Harvester', html)
+        self.assertIn('Weighted Formula Engine', html)
+        self.assertIn('How SSVS Streamlines Evaluations', html)
+        self.assertIn('Engineered for University Placement Cells', html)
+        self.assertIn('CAMPUS LEADERBOARD DIRECTORY', html)
+
+        # 2. Strict non-redundancy check: exactly 1 login link in the entire rendered page (top navbar)
+        login_links = re.findall(r'href="[^"]*auth/login[^"]*"', html)
+        self.assertEqual(len(login_links), 1, f"Expected strictly 1 login link on landing page, found {len(login_links)}: {login_links}")
+
 if __name__ == '__main__':
     unittest.main()
+
 

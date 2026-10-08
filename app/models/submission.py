@@ -1,6 +1,9 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models import db
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class Submission(db.Model):
     __tablename__ = 'submissions'
@@ -25,8 +28,8 @@ class Submission(db.Model):
     error_message = db.Column(db.Text, nullable=True)
     ip_address = db.Column(db.String(50), nullable=True)
     
-    submitted_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    submitted_at = db.Column(db.DateTime, default=utc_now, index=True)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     # Teacher Moderation & Verification
     verification_status = db.Column(db.String(30), default='verified', index=True)  # 'verified', 'pending', 'shortlisted', 'flagged'
@@ -40,8 +43,54 @@ class Submission(db.Model):
     calculated_scores = db.relationship('CalculatedScore', backref='submission', lazy='dynamic', cascade='all, delete-orphan')
 
     @property
+    def platform_profiles_list(self):
+        if hasattr(self, '_preloaded_profiles') and self._preloaded_profiles is not None:
+            return self._preloaded_profiles
+        return self.platform_profiles.all()
+
+    @classmethod
+    def preload_for_list(cls, submissions):
+        """Batch loads profiles and latest scores for a list of submissions to eliminate N+1 queries."""
+        if not submissions:
+            return submissions
+        sub_ids = [s.id for s in submissions]
+        from app.models.platform_profile import PlatformProfile
+        from app.models.scoring import CalculatedScore
+        from collections import defaultdict
+
+        profiles = PlatformProfile.query.filter(PlatformProfile.submission_id.in_(sub_ids)).all()
+        profiles_map = defaultdict(list)
+        for p in profiles:
+            profiles_map[p.submission_id].append(p)
+
+        scores = CalculatedScore.query.filter(CalculatedScore.submission_id.in_(sub_ids)).order_by(CalculatedScore.id.asc()).all()
+        scores_map = {}
+        for sc in scores:
+            scores_map[sc.submission_id] = sc
+
+        for s in submissions:
+            s._preloaded_profiles = profiles_map.get(s.id, [])
+            s._latest_score_cache = scores_map.get(s.id)
+        return submissions
+
+    @property
     def latest_score(self):
-        return self.calculated_scores.order_by(db.desc('id')).first()
+        if hasattr(self, '_latest_score_cache') and self._latest_score_cache is not None:
+            return self._latest_score_cache
+        
+        from sqlalchemy import inspect
+        insp = inspect(self)
+        if 'calculated_scores' not in insp.unloaded:
+            scores = list(self.calculated_scores)
+            if scores:
+                scores.sort(key=lambda s: s.id, reverse=True)
+                self._latest_score_cache = scores[0]
+                return scores[0]
+            return None
+
+        score = self.calculated_scores.order_by(db.desc('id')).first()
+        self._latest_score_cache = score
+        return score
 
     def get_value(self, field_key):
         for val in self.values.all():

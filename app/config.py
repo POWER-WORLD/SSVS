@@ -28,6 +28,9 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {
         'pool_pre_ping': True,
         'pool_recycle': 280,
+        'pool_size': 10,
+        'max_overflow': 20,
+        'pool_timeout': 30,
     }
     
     # Upload settings
@@ -56,6 +59,19 @@ class Config:
     SMTP_USE_TLS = os.environ.get('SMTP_USE_TLS', 'True').lower() in ('true', '1', 'yes')
     SMTP_USE_SSL = os.environ.get('SMTP_USE_SSL', 'False').lower() in ('true', '1', 'yes')
     SMTP_FROM_EMAIL = os.environ.get('SMTP_FROM_EMAIL', '') or os.environ.get('SMTP_USER', 'SSVS Verification <noreply@ssvs.edu>')
+
+    @classmethod
+    def get_engine_options(cls, uri: str) -> dict:
+        if uri and 'sqlite' in uri:
+            return {}
+        return {
+            'pool_pre_ping': True,
+            'pool_recycle': 280,
+            'pool_size': 10,
+            'max_overflow': 20,
+            'pool_timeout': 30,
+        }
+
     @classmethod
     def init_app(cls, app):
         pass
@@ -64,17 +80,20 @@ class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = get_database_uri('ssvs_dev.db')
+    SQLALCHEMY_ENGINE_OPTIONS = Config.get_engine_options(get_database_uri('ssvs_dev.db'))
 
 class TestingConfig(Config):
     """Testing configuration."""
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_ENGINE_OPTIONS = {}
     WTF_CSRF_ENABLED = False
 
 class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = get_database_uri('ssvs_prod.db')
+    SQLALCHEMY_ENGINE_OPTIONS = Config.get_engine_options(get_database_uri('ssvs_prod.db'))
     SESSION_COOKIE_SECURE = True
 
     @classmethod

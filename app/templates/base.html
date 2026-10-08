@@ -144,9 +144,12 @@
       <div>
         <strong>SSVS</strong> — Student Score View System &copy; {{ current_year }}. Enterprise Academic Performance Platform.
       </div>
-      <div class="d-flex gap-3">
-        <a href="{{ url_for('student.public_leaderboard_search') }}" class="text-secondary text-decoration-none">Leaderboard Search</a>
-        <a href="{{ url_for('auth.login') }}" class="text-secondary text-decoration-none">Faculty Portal</a>
+      <div class="d-flex flex-wrap align-items-center gap-3">
+        <a href="{{ url_for('student.public_leaderboard_search') }}" class="text-secondary text-decoration-none"><i class="bi bi-trophy text-warning me-1"></i> Leaderboards</a>
+        <span class="text-muted opacity-50">•</span>
+        <span class="text-secondary"><i class="bi bi-shield-check text-success me-1"></i> Tamper-Proof Verification</span>
+        <span class="text-muted opacity-50">•</span>
+        <span class="text-secondary"><i class="bi bi-cpu text-primary me-1"></i> 10 Coding Platforms</span>
       </div>
     </div>
   </footer>

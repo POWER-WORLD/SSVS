@@ -1,7 +1,10 @@
+from datetime import datetime, timezone
 from flask import Blueprint, render_template, send_file, request, flash, redirect, url_for
 from flask_login import login_required, current_user
+from app.models import db
 from app.models.form import Form
 from app.models.submission import Submission
+from app.models.platform_profile import PlatformProfile
 from app.models.scoring import LeaderboardEntry, CalculatedScore
 from app.export.excel_exporter import ExcelExporter
 
@@ -12,7 +15,6 @@ analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 def dashboard(form_id):
     form = Form.query.filter_by(id=form_id, teacher_id=current_user.id).first_or_404()
     entries = LeaderboardEntry.query.filter_by(form_id=form.id).order_by(LeaderboardEntry.rank.asc()).all()
-    submissions = form.submissions.all()
     
     total_count = len(entries)
     scores = [e.total_score for e in entries] if entries else []
@@ -38,21 +40,37 @@ def dashboard(form_id):
         else:
             histogram[4] += 1
 
-    # 2. Platform participation counts
-    platform_counts = {'LeetCode': 0, 'CodeChef': 0, 'Codeforces': 0, 'GitHub': 0, 'HackerRank': 0}
-    for sub in submissions:
-        for p in sub.platform_profiles.all():
-            pn = p.platform_name.lower()
-            if 'leetcode' in pn:
-                platform_counts['LeetCode'] += 1
-            elif 'codechef' in pn:
-                platform_counts['CodeChef'] += 1
-            elif 'codeforces' in pn:
-                platform_counts['Codeforces'] += 1
-            elif 'github' in pn:
-                platform_counts['GitHub'] += 1
-            elif 'hackerrank' in pn:
-                platform_counts['HackerRank'] += 1
+    # 2. Fast single-query platform participation aggregation
+    platform_counts = {
+        'LeetCode': 0, 'CodeChef': 0, 'Codeforces': 0, 'GitHub': 0,
+        'HackerRank': 0, 'GeeksforGeeks': 0, 'AtCoder': 0, 'InterviewBit': 0, 'Kaggle': 0
+    }
+    raw_counts = db.session.query(
+        PlatformProfile.platform_name, db.func.count(PlatformProfile.id)
+    ).join(Submission, PlatformProfile.submission_id == Submission.id)\
+     .filter(Submission.form_id == form.id)\
+     .group_by(PlatformProfile.platform_name).all()
+
+    for p_name, cnt in raw_counts:
+        pn = (p_name or '').lower()
+        if 'leetcode' in pn:
+            platform_counts['LeetCode'] += cnt
+        elif 'codechef' in pn:
+            platform_counts['CodeChef'] += cnt
+        elif 'codeforces' in pn:
+            platform_counts['Codeforces'] += cnt
+        elif 'github' in pn:
+            platform_counts['GitHub'] += cnt
+        elif 'hackerrank' in pn:
+            platform_counts['HackerRank'] += cnt
+        elif 'geeksforgeeks' in pn or 'gfg' in pn:
+            platform_counts['GeeksforGeeks'] += cnt
+        elif 'atcoder' in pn:
+            platform_counts['AtCoder'] += cnt
+        elif 'interviewbit' in pn:
+            platform_counts['InterviewBit'] += cnt
+        elif 'kaggle' in pn:
+            platform_counts['Kaggle'] += cnt
 
     # 3. Department averages
     dept_scores = {}
@@ -96,13 +114,13 @@ def dashboard(form_id):
 @login_required
 def export_excel(form_id):
     form = Form.query.filter_by(id=form_id, teacher_id=current_user.id).first_or_404()
-    if form.submissions.count() == 0:
+    if form.submission_count == 0:
         flash('No student submissions found to export.', 'warning')
         return redirect(url_for('forms_mgr.submissions', form_id=form.id))
 
     excel_stream = ExcelExporter.generate_form_report(form)
     clean_title = "".join(c for c in form.title if c.isalnum() or c in (' ', '_', '-')).rstrip()
-    filename = f"SSVS_{clean_title}_{datetime.utcnow().strftime('%Y%m%d')}.xlsx"
+    filename = f"SSVS_{clean_title}_{datetime.now(timezone.utc).strftime('%Y%m%d')}.xlsx"
     
     return send_file(
         excel_stream,

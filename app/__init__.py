@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from app.config import config
 from app.models import db, login_manager, migrate, csrf
 from app.auth import auth_bp
@@ -19,17 +19,17 @@ def create_app(config_name=None):
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
 
-    # Apply ProxyFix for reverse proxy support on Render / Heroku / Nginx (HTTPS & real IP)
-    from werkzeug.middleware.proxy_fix import ProxyFix
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+    # Apply ProxyFix only in production behind reverse proxies (Render / Heroku / Nginx)
+    if config_name == 'production' or os.environ.get('RENDER'):
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-    # Enable WhiteNoise for fast, cached static assets in production
-    try:
-        from whitenoise import WhiteNoise
-        static_dir = os.path.join(app.root_path, 'static')
-        app.wsgi_app = WhiteNoise(app.wsgi_app, root=static_dir, prefix='static/')
-    except ImportError:
-        pass
+        try:
+            from whitenoise import WhiteNoise
+            static_dir = os.path.join(app.root_path, 'static')
+            app.wsgi_app = WhiteNoise(app.wsgi_app, root=static_dir, prefix='static/')
+        except ImportError:
+            pass
 
     # Ensure required directories exist
     os.makedirs(app.config.get('UPLOAD_FOLDER', 'uploads'), exist_ok=True)
@@ -52,6 +52,13 @@ def create_app(config_name=None):
     app.register_blueprint(student_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(api_bp)
+
+    # Performance: set client-side caching header for static assets
+    @app.after_request
+    def set_cache_headers(response):
+        if request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'public, max-age=86400'
+        return response
 
     # Lightweight health check endpoint for Render/uptime monitoring
     @app.route('/healthz')
@@ -81,35 +88,13 @@ def create_app(config_name=None):
     def forbidden_error(error):
         return render_template('errors/403.html'), 403
 
-    # Idempotent schema migration for new columns and tables
-    with app.app_context():
-        try:
-            db.create_all()
-            from sqlalchemy import text, inspect
-            inspector = inspect(db.engine)
-            table_names = inspector.get_table_names()
-            
-            if 'submissions' in table_names:
-                cols = [c['name'] for c in inspector.get_columns('submissions')]
-                with db.engine.connect() as conn:
-                    if 'verification_status' not in cols:
-                        conn.execute(text("ALTER TABLE submissions ADD COLUMN verification_status VARCHAR(30) DEFAULT 'verified'"))
-                    if 'teacher_remarks' not in cols:
-                        conn.execute(text("ALTER TABLE submissions ADD COLUMN teacher_remarks TEXT"))
-                    if 'manual_score_adjustment' not in cols:
-                        conn.execute(text("ALTER TABLE submissions ADD COLUMN manual_score_adjustment FLOAT DEFAULT 0.0"))
-                    if 'last_modified_by' not in cols:
-                        conn.execute(text("ALTER TABLE submissions ADD COLUMN last_modified_by VARCHAR(150)"))
-                    conn.commit()
-
-            if 'teachers' in table_names:
-                cols = [c['name'] for c in inspector.get_columns('teachers')]
-                with db.engine.connect() as conn:
-                    if 'email_verified' not in cols:
-                        conn.execute(text("ALTER TABLE teachers ADD COLUMN email_verified BOOLEAN DEFAULT FALSE"))
-                        conn.commit()
-        except Exception as e:
-            app.logger.warning(f"Schema upgrade notice: {e}")
+    # Idempotent schema creation (run on explicit flag or in testing)
+    if app.config.get('TESTING') or os.environ.get('INIT_DB') == '1':
+        with app.app_context():
+            try:
+                db.create_all()
+            except Exception as e:
+                app.logger.warning(f"Schema init notice: {e}")
 
     return app
 

@@ -1,5 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models import db
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class PlatformProfile(db.Model):
     __tablename__ = 'platform_profiles'
@@ -24,7 +27,7 @@ class PlatformProfile(db.Model):
     # Status: 'success', 'simulated', 'failed'
     extraction_status = db.Column(db.String(30), default='success')
     error_message = db.Column(db.String(300), nullable=True)
-    extracted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    extracted_at = db.Column(db.DateTime, default=utc_now)
 
     def to_dict(self):
         return {

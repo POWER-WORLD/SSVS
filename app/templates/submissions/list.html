@@ -181,7 +181,7 @@
             </td>
             <td>
               <div class="d-flex flex-wrap gap-1 small">
-                {% for prof in sub.platform_profiles.all() %}
+                {% for prof in sub.platform_profiles_list %}
                   {% if prof.platform_name == 'leetcode' %}
                     <span class="badge bg-warning-subtle text-warning border" title="LeetCode: {{ prof.problems_solved }} solved | Rating: {{ prof.contest_rating|int }}">
                       <i class="bi bi-code-slash"></i> {{ prof.problems_solved }}
@@ -193,6 +193,18 @@
                   {% elif prof.platform_name == 'codechef' %}
                     <span class="badge bg-danger-subtle text-danger border" title="CodeChef: {{ prof.stars_or_badges }}★ (Rating: {{ prof.contest_rating|int }})">
                       <i class="bi bi-fire"></i> {{ prof.stars_or_badges }}★
+                    </span>
+                  {% elif prof.platform_name == 'codeforces' %}
+                    <span class="badge bg-danger-subtle text-danger border" title="Codeforces Rating: {{ prof.contest_rating|int }}">
+                      <i class="bi bi-bar-chart"></i> {{ prof.contest_rating|int }}
+                    </span>
+                  {% elif prof.platform_name == 'hackerrank' %}
+                    <span class="badge bg-success-subtle text-success border" title="HackerRank: {{ prof.stars_or_badges }} badges">
+                      <i class="bi bi-patch-check"></i> {{ prof.stars_or_badges }}★
+                    </span>
+                  {% elif prof.platform_name in ['gfg', 'geeksforgeeks'] %}
+                    <span class="badge bg-success-subtle text-success border" title="GFG: {{ prof.problems_solved }} solved">
+                      <i class="bi bi-terminal"></i> {{ prof.problems_solved }}
                     </span>
                   {% elif prof.platform_name == 'atcoder' %}
                     <span class="badge bg-secondary-subtle text-secondary border" title="AtCoder Rating: {{ prof.contest_rating|int }}">

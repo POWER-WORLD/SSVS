@@ -9,7 +9,7 @@ class FormulaEvaluator:
     """Evaluates student scores based on formula rules and platform metrics."""
 
     @staticmethod
-    def extract_metric_values(submission: Submission) -> Dict[str, float]:
+    def extract_metric_values(submission: Submission, profiles: Optional[List[PlatformProfile]] = None) -> Dict[str, float]:
         """Flatten submission values and platform profiles into a numeric metrics dictionary."""
         metrics: Dict[str, float] = {
             'cgpa': float(submission.cgpa or 0.0),
@@ -27,11 +27,19 @@ class FormulaEvaluator:
             'github_contributions': 0.0,
             'hackerrank_badges': 0.0,
             'gfg_problems': 0.0,
-            'gfg_score': 0.0
+            'gfg_score': 0.0,
+            'atcoder_rating': 0.0,
+            'atcoder_highest': 0.0,
+            'atcoder_contests': 0.0,
+            'interviewbit_score': 0.0,
+            'interviewbit_solved': 0.0,
+            'kaggle_medals': 0.0,
+            'kaggle_score': 0.0
         }
 
-        # Inspect extracted platform profiles
-        for profile in submission.platform_profiles.all():
+        # Inspect extracted platform profiles (using preloaded list when provided)
+        profile_list = profiles if profiles is not None else submission.platform_profiles.all()
+        for profile in profile_list:
             p_name = profile.platform_name.lower()
             raw = profile.raw_data or {}
             
@@ -45,17 +53,17 @@ class FormulaEvaluator:
             elif p_name == 'codeforces':
                 metrics['codeforces_rating'] = float(profile.contest_rating or raw.get('rating', 0))
             elif p_name == 'github':
-                repos = float(raw.get('public_repos', 0))
-                stars = float(raw.get('stars_earned', 0))
+                repos = float(raw.get('public_repos', 0) or profile.problems_solved or 0)
+                stars = float(raw.get('stars_earned', 0) or profile.stars_or_badges or 0)
                 metrics['github_repos'] = repos
                 metrics['github_stars'] = stars
                 metrics['github_stars_repos'] = repos * 0.8 + stars * 1.5
-                metrics['github_contributions'] = float(raw.get('contributions_year', 0))
+                metrics['github_contributions'] = float(raw.get('contributions_year', 0) or profile.contest_rating or 0)
             elif p_name == 'hackerrank':
                 metrics['hackerrank_badges'] = float(profile.stars_or_badges or raw.get('badges_count', 0))
             elif p_name in ('gfg', 'geeksforgeeks'):
                 metrics['gfg_problems'] = float(profile.problems_solved or raw.get('problems_solved', 0))
-                metrics['gfg_score'] = float(raw.get('coding_score', 0))
+                metrics['gfg_score'] = float(raw.get('coding_score', 0) or profile.contest_rating or 0)
             elif p_name == 'atcoder':
                 metrics['atcoder_rating'] = float(profile.contest_rating or raw.get('current_rating', 0))
                 metrics['atcoder_highest'] = float(profile.highest_rating or raw.get('highest_rating', 0))
@@ -224,53 +232,14 @@ class FormulaEvaluator:
         for p in all_profiles:
             profiles_by_sub.setdefault(p.submission_id, []).append(p)
 
+        # Pre-fetch formula rules ONCE in memory
+        rules = formula.rules.all()
+
         # Score all submissions
         scored_pairs = []
         for sub in submissions:
-            metrics = {
-                'cgpa': float(sub.cgpa or 0.0),
-                'backlogs': float(sub.backlogs or 0),
-                'backlogs_penalty': float(sub.backlogs or 0),
-                'leetcode_solved': 0.0,
-                'leetcode_rating': 0.0,
-                'leetcode_hard': 0.0,
-                'codechef_rating': 0.0,
-                'codechef_stars': 0.0,
-                'codeforces_rating': 0.0,
-                'github_repos': 0.0,
-                'github_stars': 0.0,
-                'github_stars_repos': 0.0,
-                'github_contributions': 0.0,
-                'hackerrank_badges': 0.0,
-                'gfg_problems': 0.0,
-                'gfg_score': 0.0
-            }
-
             sub_profs = profiles_by_sub.get(sub.id, [])
-            for profile in sub_profs:
-                p_name = profile.platform_name.lower()
-                raw = profile.raw_data or {}
-                if p_name == 'leetcode':
-                    metrics['leetcode_solved'] = float(profile.problems_solved or raw.get('total_solved', 0))
-                    metrics['leetcode_rating'] = float(profile.contest_rating or raw.get('contest_rating', 0.0))
-                    metrics['leetcode_hard'] = float(raw.get('hard_solved', 0))
-                elif p_name == 'codechef':
-                    metrics['codechef_rating'] = float(profile.contest_rating or raw.get('current_rating', 0))
-                    metrics['codechef_stars'] = float(profile.stars_or_badges or raw.get('stars', 0))
-                elif p_name == 'codeforces':
-                    metrics['codeforces_rating'] = float(profile.contest_rating or raw.get('rating', 0))
-                elif p_name == 'github':
-                    repos = float(raw.get('public_repos', 0))
-                    stars = float(raw.get('stars_earned', 0))
-                    metrics['github_repos'] = repos
-                    metrics['github_stars'] = stars
-                    metrics['github_stars_repos'] = repos * 0.8 + stars * 1.5
-                    metrics['github_contributions'] = float(raw.get('contributions_year', 0))
-                elif p_name == 'hackerrank':
-                    metrics['hackerrank_badges'] = float(profile.stars_or_badges or raw.get('badges_count', 0))
-                elif p_name in ('gfg', 'geeksforgeeks'):
-                    metrics['gfg_problems'] = float(profile.problems_solved or raw.get('problems_solved', 0))
-                    metrics['gfg_score'] = float(raw.get('coding_score', 0))
+            metrics = cls.extract_metric_values(sub, profiles=sub_profs)
 
             academic_score = 0.0
             coding_score = 0.0
@@ -279,7 +248,7 @@ class FormulaEvaluator:
             bonuses = 0.0
             breakdown = {}
 
-            for rule in formula.rules.all():
+            for rule in rules:
                 m_key = rule.metric_key
                 raw_val = metrics.get(m_key, 0.0)
                 if rule.category == 'penalty':
@@ -303,6 +272,20 @@ class FormulaEvaluator:
                 breakdown[m_key] = {'label': rule.display_label, 'raw_value': raw_val, 'earned': round(rule_earned, 2), 'bonus': round(rule_bonus, 2), 'max_marks': rule.max_marks, 'category': rule.category}
 
             subtotal = academic_score + coding_score + github_score + bonuses - penalties
+
+            # Apply teacher manual score adjustment if any
+            manual_adj = getattr(sub, 'manual_score_adjustment', 0.0) or 0.0
+            if manual_adj != 0.0:
+                subtotal += manual_adj
+                breakdown['teacher_adjustment'] = {
+                    'label': 'Teacher Manual Score Adjustment',
+                    'raw_value': manual_adj,
+                    'earned': round(manual_adj, 2),
+                    'bonus': 0.0,
+                    'max_marks': 0.0,
+                    'category': 'adjustment'
+                }
+
             total = max(0.0, min(formula.max_total_marks, subtotal))
             grade = 'A+' if total >= 85 else ('A' if total >= 70 else ('B' if total >= 55 else ('C' if total >= 40 else 'D')))
 

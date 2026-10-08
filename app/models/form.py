@@ -1,6 +1,9 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models import db
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class Form(db.Model):
     __tablename__ = 'forms'
@@ -29,8 +32,8 @@ class Form(db.Model):
     is_public = db.Column(db.Boolean, default=True)
     qr_code_path = db.Column(db.String(300), nullable=True)
     
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
 
     # Relationships
     fields = db.relationship('FormField', backref='form', lazy='dynamic', cascade='all, delete-orphan', order_by='FormField.display_order')
@@ -40,13 +43,15 @@ class Form(db.Model):
 
     @property
     def submission_count(self):
+        if hasattr(self, '_submission_count_cache') and self._submission_count_cache is not None:
+            return self._submission_count_cache
         return self.submissions.count()
 
     @property
     def is_open(self):
         if not self.is_published or self.is_closed:
             return False
-        if self.deadline and datetime.utcnow() > self.deadline:
+        if self.deadline and utc_now() > self.deadline:
             return False
         if self.max_responses and self.submission_count >= self.max_responses:
             return False
@@ -109,6 +114,26 @@ class FormField(db.Model):
     # Relationships
     options = db.relationship('FieldOption', backref='field', lazy='dynamic', cascade='all, delete-orphan', order_by='FieldOption.display_order')
 
+    @property
+    def options_list(self):
+        if hasattr(self, '_preloaded_options') and self._preloaded_options is not None:
+            return self._preloaded_options
+        return self.options.all()
+
+    @classmethod
+    def preload_for_fields(cls, fields):
+        if not fields:
+            return fields
+        field_ids = [f.id for f in fields]
+        from collections import defaultdict
+        all_options = FieldOption.query.filter(FieldOption.field_id.in_(field_ids)).order_by(FieldOption.display_order.asc()).all()
+        options_map = defaultdict(list)
+        for opt in all_options:
+            options_map[opt.field_id].append(opt)
+        for f in fields:
+            f._preloaded_options = options_map.get(f.id, [])
+        return fields
+
     def to_dict(self, include_options=True):
         data = {
             'id': self.id,
@@ -127,7 +152,7 @@ class FormField(db.Model):
             'conditional_rules': self.conditional_rules or {}
         }
         if include_options:
-            data['options'] = [opt.to_dict() for opt in self.options.all()]
+            data['options'] = [opt.to_dict() for opt in self.options_list]
         return data
 
 

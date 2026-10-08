@@ -3,182 +3,690 @@
 {% block title %}SSVS — Student Score View System | Enterprise Academic & Coding Evaluation Platform{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-5">
-  <!-- Hero Section -->
-  <div class="row align-items-center justify-content-center py-5">
-    <div class="col-lg-8 text-center">
-      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-primary-subtle text-primary fw-semibold small mb-4">
-        <span class="badge bg-primary rounded-pill">NEW</span> Enterprise Academic & Coding Evaluation
-      </div>
-      <h1 class="display-4 fw-extrabold mb-4 lh-sm">
-        Assess Student Coding Profiles.<br>
-        <span class="text-primary">Instant Automated Intelligence.</span>
-      </h1>
-      <p class="lead text-secondary mb-5 mx-auto" style="max-width: 720px;">
-        Combine the flexibility of <strong>Google Forms</strong> with the depth of <strong>LeetCode Analytics</strong> and <strong>HackerRank Dashboards</strong>. Faculty create dynamic forms; students submit without accounts; scores and live leaderboards are generated automatically.
-      </p>
+<!-- ==========================================================================
+     HERO SECTION: AMBIENT GLOW & INTERACTIVE EVALUATION SIMULATOR
+     ========================================================================== -->
+<section class="hero-landing-section" id="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-ambient-glow"></div>
 
-      <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
-        {% if current_user.is_authenticated %}
-        <a href="{{ url_for('dashboard.overview') }}" class="btn btn-lg btn-primary-gradient px-4 py-3">
-          <i class="bi bi-speedometer2 me-2"></i> Go to Faculty Dashboard
-        </a>
-        {% else %}
-        <a href="{{ url_for('auth.login') }}" class="btn btn-lg btn-primary-gradient px-4 py-3">
-          <i class="bi bi-person-badge-fill me-2"></i> Teacher & Admin Login
-        </a>
-        <a href="{{ url_for('auth.register') }}" class="btn btn-lg btn-outline-secondary px-4 py-3">
-          Create Free Account
-        </a>
-        {% endif %}
-        <a href="{{ url_for('student.public_leaderboard_search') }}" class="btn btn-lg btn-soft px-4 py-3">
-          <i class="bi bi-trophy-fill text-warning me-2"></i> View Live Leaderboards
-        </a>
-      </div>
-
-      <!-- Active Assessment Drive / System Capabilities -->
-      {% if featured_form %}
-      <div class="card card-glass p-4 text-start shadow-sm mx-auto" style="max-width: 780px;">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-success-subtle text-success fw-bold">ACTIVE ASSESSMENT</span>
-            <span class="small text-muted">{{ featured_form.teacher.college_name or 'Institutional Evaluation' }}</span>
-          </div>
-          <span class="badge bg-primary-subtle text-primary">{{ featured_form.submissions.count() }} Submissions</span>
-        </div>
-        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
-          <div class="small">
-            <strong>Active Assessment:</strong> {{ featured_form.title }}
-          </div>
-          <div class="d-flex gap-2">
-            <a href="{{ url_for('student.view_form', slug=featured_form.slug) }}" class="btn btn-sm btn-outline-primary" target="_blank">
-              <i class="bi bi-box-arrow-up-right me-1"></i> Student Form
-            </a>
-            <a href="{{ url_for('student.view_leaderboard', slug=featured_form.slug) }}" class="btn btn-sm btn-primary-gradient">
-              <i class="bi bi-trophy me-1"></i> Live Leaderboard
-            </a>
-          </div>
-        </div>
-      </div>
-      {% else %}
-      <div class="card card-glass p-4 text-start shadow-sm mx-auto" style="max-width: 780px;">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary-subtle text-primary fw-bold"><i class="bi bi-cpu-fill me-1"></i> MULTI-PLATFORM ENGINE</span>
-            <span class="small text-muted">Academic & Competitive Programming</span>
-          </div>
-          <span class="badge bg-success-subtle text-success"><i class="bi bi-shield-check me-1"></i> Production Ready</span>
-        </div>
-        <p class="small text-secondary mb-3">
-          Build custom evaluation drives, extract statistics automatically across LeetCode, CodeChef, Codeforces, GitHub, and generate single-page verifiable scorecards with dynamic QR codes.
-        </p>
-        <div class="d-flex flex-wrap gap-2">
-          <a href="{{ url_for('auth.register') }}" class="btn btn-sm btn-primary-gradient">
-            <i class="bi bi-person-plus-fill me-1"></i> Register Faculty Account
-          </a>
-          <a href="{{ url_for('student.public_leaderboard_search') }}" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-search me-1"></i> Browse Public Leaderboards
-          </a>
-        </div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Key Value Pillars -->
-  <div class="row g-4 py-5">
-    <div class="col-md-4">
-      <div class="card card-modern h-100 p-4">
-        <div class="rounded-3 bg-primary-subtle text-primary d-inline-flex p-3 fs-3 mb-3" style="width: 54px; height: 54px; align-items: center; justify-content: center;">
-          <i class="bi bi-magic"></i>
-        </div>
-        <h4 class="fw-bold mb-2">Automated Extraction</h4>
-        <p class="text-secondary small mb-0">
-          No manual copy-pasting. SSVS automatically extracts problems solved, contest ratings, streaks, and stars from LeetCode, CodeChef, Codeforces, and GitHub.
-        </p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card card-modern h-100 p-4">
-        <div class="rounded-3 bg-success-subtle text-success d-inline-flex p-3 fs-3 mb-3" style="width: 54px; height: 54px; align-items: center; justify-content: center;">
-          <i class="bi bi-sliders"></i>
-        </div>
-        <h4 class="fw-bold mb-2">Intelligent Formula Scoring</h4>
-        <p class="text-secondary small mb-0">
-          Build custom evaluation rules visually. Adjust weights between CGPA, LeetCode, CodeChef, and GitHub, define backlog penalty deductions, and normalize cohort scores.
-        </p>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card card-modern h-100 p-4">
-        <div class="rounded-3 bg-warning-subtle text-warning d-inline-flex p-3 fs-3 mb-3" style="width: 54px; height: 54px; align-items: center; justify-content: center;">
-          <i class="bi bi-file-earmark-spreadsheet"></i>
-        </div>
-        <h4 class="fw-bold mb-2">Multi-Sheet Excel Reports</h4>
-        <p class="text-secondary small mb-0">
-          Export executive-grade workbooks with frozen headers, formatted rank podiums, raw responses, platform statistics, and cohort analytics with one click.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Zero-Login Student Flow Showcase -->
-  <div class="card card-glass p-5 my-5">
-    <div class="row align-items-center">
+  <div class="container position-relative" style="z-index: 1;">
+    <div class="row align-items-center g-5 py-3">
+      <!-- Left Hero Column: Value Proposition & Direct Cohort Discovery -->
       <div class="col-lg-6">
-        <span class="badge bg-primary text-white mb-3">ZERO BARRIER WORKFLOW</span>
-        <h2 class="fw-bold mb-3">Students Never Need to Create an Account.</h2>
-        <p class="text-secondary mb-4">
-          Teachers publish an assessment and share the unique link or QR code. Students simply open the URL on phone or laptop, fill their academic information and profile handles, and submit.
+        <div class="hero-badge-pill mb-4">
+          <span class="hero-badge-pulse"></span>
+          <span>SSVS 2.0 • Real-Time Multi-Platform Intelligence</span>
+        </div>
+
+        <h1 class="display-4 fw-extrabold tracking-tight lh-sm mb-3">
+          Transform Multi-Platform Coding & Academics Into<br>
+          <span class="hero-gradient-text">Unified Placement Intelligence.</span>
+        </h1>
+
+        <p class="lead text-secondary mb-4 fs-6">
+          Eliminate manual spreadsheets and unverified self-reporting. SSVS automatically aggregates, validates, and normalizes student profiles across <strong>10 competitive coding platforms</strong> and university academics with zero student logins.
         </p>
-        <ul class="list-unstyled text-secondary small d-flex flex-column gap-2 mb-4">
-          <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Instant draft auto-saving in browser storage</li>
-          <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Duplicate roll number and email prevention</li>
-          <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Real-time multi-step extraction status tracker</li>
-          <li class="d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill text-success"></i> Instant placement on the public cohort leaderboard</li>
-        </ul>
-        {% if featured_form %}
-        <a href="{{ url_for('student.view_form', slug=featured_form.slug) }}" class="btn btn-outline-primary fw-semibold">
-          View Active Assessment Form <i class="bi bi-arrow-right ms-1"></i>
-        </a>
-        {% else %}
-        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary fw-semibold">
-          Get Started as Faculty <i class="bi bi-arrow-right ms-1"></i>
-        </a>
-        {% endif %}
+
+        <!-- Direct Cohort Access Search Bar -->
+        <div class="card p-2 border shadow-sm mb-4" style="background: var(--bg-surface-translucent); backdrop-filter: blur(12px); border-radius: var(--radius-xl);">
+          <form action="{{ url_for('student.public_leaderboard_search') }}" method="GET" class="d-flex flex-column flex-sm-row gap-2">
+            <div class="input-group">
+              <span class="input-group-text bg-transparent border-0 text-muted ps-3">
+                <i class="bi bi-search"></i>
+              </span>
+              <input type="text" name="q" class="form-control border-0 bg-transparent shadow-none" placeholder="Search college, batch, or assessment code..." aria-label="Search leaderboard">
+            </div>
+            <button type="submit" class="btn btn-primary-gradient px-4 py-2 text-nowrap rounded-3">
+              <i class="bi bi-trophy-fill text-warning me-1"></i> Find Leaderboard
+            </button>
+          </form>
+        </div>
+
+        <!-- Metric Ribbon -->
+        <div class="row g-2 pt-2">
+          <div class="col-6 col-sm-3">
+            <div class="hero-stat-chip">
+              <div>
+                <div class="fw-bold fs-5 text-primary lh-1">10</div>
+                <div class="text-muted small" style="font-size: 0.72rem;">Harvesters</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="hero-stat-chip">
+              <div>
+                <div class="fw-bold fs-5 text-success lh-1">Zero</div>
+                <div class="text-muted small" style="font-size: 0.72rem;">Student Logins</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="hero-stat-chip">
+              <div>
+                <div class="fw-bold fs-5 text-warning lh-1">&lt; 1s</div>
+                <div class="text-muted small" style="font-size: 0.72rem;">Aggregation</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="hero-stat-chip">
+              <div>
+                <div class="fw-bold fs-5 text-info lh-1">100%</div>
+                <div class="text-muted small" style="font-size: 0.72rem;">QR Verified</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="col-lg-6 mt-4 mt-lg-0 text-center">
-        <div class="card card-modern p-4 border shadow-sm text-start">
-          <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-            <span class="fw-bold text-primary"><i class="bi bi-cpu-fill me-1"></i> Real-Time Extraction Engine</span>
-            <span class="badge bg-success-subtle text-success"><i class="bi bi-check2-all me-1"></i> Multi-Platform Active</span>
+
+      <!-- Right Hero Column: Interactive Dynamic Scorecard Simulator -->
+      <div class="col-lg-6">
+        <div class="interactive-preview-card">
+          <!-- Card Header / Window Bar -->
+          <div class="preview-card-header">
+            <div class="preview-dot-group">
+              <div class="preview-dot bg-danger opacity-75"></div>
+              <div class="preview-dot bg-warning opacity-75"></div>
+              <div class="preview-dot bg-success opacity-75"></div>
+            </div>
+            <!-- Dynamic Interactive Tabs -->
+            <div class="d-flex gap-1" id="simulator-tabs">
+              <button type="button" class="preview-tab-btn active" data-tab="tab-score">
+                <i class="bi bi-award me-1"></i> Score Matrix
+              </button>
+              <button type="button" class="preview-tab-btn" data-tab="tab-crawler">
+                <i class="bi bi-cpu me-1"></i> Harvester
+              </button>
+              <button type="button" class="preview-tab-btn" data-tab="tab-verify">
+                <i class="bi bi-qr-code-scan me-1"></i> Verified QR
+              </button>
+            </div>
           </div>
-          <div class="small text-secondary mb-3">Instant automated profile sync and metric extraction across 8+ platforms:</div>
-          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
-            <span><i class="bi bi-code-square text-warning me-2"></i>LeetCode</span>
-            <span class="text-success"><i class="bi bi-check2"></i> Solved Breakdown & Rating</span>
-          </div>
-          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
-            <span><i class="bi bi-award text-primary me-2"></i>CodeChef & Codeforces</span>
-            <span class="text-success"><i class="bi bi-check2"></i> Global Ranks & Stars</span>
-          </div>
-          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
-            <span><i class="bi bi-github text-dark me-2"></i>GitHub & Open Source</span>
-            <span class="text-success"><i class="bi bi-check2"></i> Repos, Stars & Commits</span>
-          </div>
-          <div class="p-2 rounded bg-body-tertiary font-monospace small mb-2 d-flex justify-content-between">
-            <span><i class="bi bi-diagram-3 text-info me-2"></i>AtCoder, Kaggle & GFG</span>
-            <span class="text-success"><i class="bi bi-check2"></i> Competitions & Badges</span>
-          </div>
-          <div class="p-2 rounded bg-primary-subtle text-primary fw-bold small d-flex justify-content-between mt-3">
-            <span>Evaluation Engine:</span>
-            <span>Weighted Formulas & Dynamic Leaderboard</span>
+
+          <!-- Card Body -->
+          <div class="p-4">
+            <!-- Simulated Candidate Banner -->
+            <div class="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center" style="width: 46px; height: 46px; font-size: 1.1rem;">
+                  AS
+                </div>
+                <div>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold">Aarav Sharma</span>
+                    <span class="badge bg-success-subtle text-success small py-0 px-2"><i class="bi bi-check-circle-fill me-1"></i> Verified</span>
+                  </div>
+                  <div class="text-muted small">Computer Science &amp; Engineering • Roll: 22CS084</div>
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-warning text-dark fw-bold px-2 py-1"><i class="bi bi-trophy-fill me-1"></i> Rank #1</span>
+                <div class="text-muted small mt-1" style="font-size: 0.75rem;">Top 0.2% Cohort</div>
+              </div>
+            </div>
+
+            <!-- TAB 1: Composite Score Matrix -->
+            <div id="tab-score" class="tab-panel">
+              <div class="preview-score-bubble mb-3">
+                <div>
+                  <div class="text-white-50 small text-uppercase fw-semibold" style="letter-spacing: 0.05em;">Composite Score</div>
+                  <div class="display-6 fw-extrabold text-white lh-1">94.8 <span class="fs-6 text-white-50">/ 100</span></div>
+                </div>
+                <div class="text-end">
+                  <span class="badge bg-white text-dark fw-bold px-2 py-1">Percentile: 99.8%</span>
+                  <div class="text-white-50 small mt-1">Tier: Diamond Finalist</div>
+                </div>
+              </div>
+
+              <!-- Metrics Breakdown Grid -->
+              <div class="row g-2 small">
+                <div class="col-6">
+                  <div class="p-2 rounded-2 bg-body-tertiary border d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-code-slash text-warning"></i> LeetCode</span>
+                    <span class="fw-bold">482 Solved</span>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-2 rounded-2 bg-body-tertiary border d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-fire text-danger"></i> CodeChef</span>
+                    <span class="fw-bold">4★ (1912)</span>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-2 rounded-2 bg-body-tertiary border d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-bar-chart-fill text-primary"></i> Codeforces</span>
+                    <span class="fw-bold">Expert (1640)</span>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-2 rounded-2 bg-body-tertiary border d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-github text-body"></i> GitHub</span>
+                    <span class="fw-bold">38 Repos</span>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-2 rounded-2 bg-body-tertiary border d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-mortarboard-fill text-info"></i> Academic CGPA</span>
+                    <span class="fw-bold">9.35 / 10</span>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="p-2 rounded-2 bg-body-tertiary border d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center gap-1"><i class="bi bi-shield-x text-success"></i> Backlogs</span>
+                    <span class="fw-bold text-success">0 (No Penalty)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 2: Live Harvester Telemetry -->
+            <div id="tab-crawler" class="tab-panel d-none">
+              <div class="p-3 rounded-3 bg-dark text-white font-monospace small mb-3" style="font-size: 0.78rem;">
+                <div class="text-success"><i class="bi bi-check2"></i> [CRAWLER:SYNC] Parallel worker queue started...</div>
+                <div class="text-info"><i class="bi bi-arrow-repeat"></i> GET https://leetcode.com/aarav_dev -> 200 OK (142ms)</div>
+                <div class="text-info"><i class="bi bi-arrow-repeat"></i> GET https://codechef.com/users/aarav_dev -> 200 OK (198ms)</div>
+                <div class="text-info"><i class="bi bi-arrow-repeat"></i> GET https://codeforces.com/api/user.info -> 200 OK (115ms)</div>
+                <div class="text-warning"><i class="bi bi-calculator"></i> Normalization: Min-Max applied across 420 cohort entries</div>
+                <div class="text-success fw-bold"><i class="bi bi-check-all"></i> [STATUS:READY] Leaderboard entry recalculated in 0.42s</div>
+              </div>
+              <div class="d-flex flex-wrap gap-1">
+                <span class="platform-mini-tag text-success"><i class="bi bi-circle-fill text-success" style="font-size: 0.4rem;"></i> LeetCode: Verified</span>
+                <span class="platform-mini-tag text-success"><i class="bi bi-circle-fill text-success" style="font-size: 0.4rem;"></i> Codeforces: Verified</span>
+                <span class="platform-mini-tag text-success"><i class="bi bi-circle-fill text-success" style="font-size: 0.4rem;"></i> GitHub: Verified</span>
+                <span class="platform-mini-tag text-success"><i class="bi bi-circle-fill text-success" style="font-size: 0.4rem;"></i> CodeChef: Verified</span>
+              </div>
+            </div>
+
+            <!-- TAB 3: Cryptographic Verification Badge -->
+            <div id="tab-verify" class="tab-panel d-none">
+              <div class="p-3 rounded-3 border bg-body-tertiary text-center mb-2">
+                <div class="d-inline-flex p-3 rounded-3 bg-white shadow-xs mb-2">
+                  <i class="bi bi-qr-code text-dark" style="font-size: 3.5rem;"></i>
+                </div>
+                <div class="fw-bold small text-primary">Cryptographic Verification Hash</div>
+                <div class="font-monospace text-muted small" style="font-size: 0.72rem;">e4b2a8f9-3d1c-4e8a-bf90-9c4e2a1b7e5f</div>
+                <div class="badge bg-success-subtle text-success small mt-2">
+                  <i class="bi bi-patch-check-fill me-1"></i> Tamper-Evident Scorecard Issued
+                </div>
+              </div>
+              <p class="text-secondary small text-center mb-0" style="font-size: 0.78rem;">
+                Recruiters scan this QR code directly with any smartphone to view the verified original submission record.
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ==========================================================================
+     ACTIVE ASSESSMENT BANNER (Rendered only when an active drive exists)
+     ========================================================================== -->
+{% if featured_form %}
+<section class="py-3 bg-body-tertiary border-top border-bottom">
+  <div class="container">
+    <div class="card p-3 border shadow-sm mx-auto" style="max-width: 900px; background: var(--bg-surface);">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-success-subtle text-success fw-bold">ACTIVE ASSESSMENT DRIVE</span>
+            <span class="small text-muted">{{ featured_form.teacher.college_name if featured_form.teacher else 'Campus Placement' }}</span>
+          </div>
+          <h5 class="fw-bold mb-1 text-primary">{{ featured_form.title }}</h5>
+          <div class="small text-secondary">
+            <i class="bi bi-people-fill text-primary me-1"></i> <strong>{{ featured_form.submission_count }}</strong> students evaluated in this cohort
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('student.view_form', slug=featured_form.slug) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+            <i class="bi bi-pencil-square me-1"></i> Submit Profile
+          </a>
+          <a href="{{ url_for('student.view_leaderboard', slug=featured_form.slug) }}" class="btn btn-sm btn-primary-gradient">
+            <i class="bi bi-trophy-fill text-warning me-1"></i> Live Ranks
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ==========================================================================
+     SECTION: 3 CORE ARCHITECTURAL PILLARS
+     ========================================================================== -->
+<section class="py-5" id="architecture">
+  <div class="container py-3">
+    <div class="text-center max-w-750 mx-auto mb-5">
+      <span class="badge bg-primary-subtle text-primary fw-bold mb-2">ENGINEERED ARCHITECTURE</span>
+      <h2 class="display-6 fw-extrabold mb-3">Three Pillars of Academic Intelligence</h2>
+      <p class="text-secondary small">
+        SSVS merges intuitive form authoring, resilient multi-platform background crawling, and advanced mathematical scoring into a cohesive university platform.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <!-- Pillar 1 -->
+      <div class="col-md-4">
+        <div class="pillar-card">
+          <div class="pillar-icon-box bg-primary-subtle text-primary">
+            <i class="bi bi-ui-checks-grid"></i>
+          </div>
+          <h5 class="fw-bold mb-2">1. Dynamic Form Studio</h5>
+          <p class="text-secondary small mb-3">
+            Author customized assessment drives with Google Forms-level agility. Supports drag-and-drop ordering, platform handle regex validators, resume upload slots, and instant browser draft recovery.
+          </p>
+          <div class="mt-auto pt-2 border-top">
+            <span class="badge bg-body-tertiary text-secondary border small">Zero-Auth Submissions</span>
+            <span class="badge bg-body-tertiary text-secondary border small">Duplicate Detection</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pillar 2 -->
+      <div class="col-md-4">
+        <div class="pillar-card">
+          <div class="pillar-icon-box bg-success-subtle text-success">
+            <i class="bi bi-cpu-fill"></i>
+          </div>
+          <h5 class="fw-bold mb-2">2. Multi-Platform Harvester</h5>
+          <p class="text-secondary small mb-3">
+            Real-time asynchronous scrapers and official APIs query 10 developer ecosystems concurrently. Resilient retry queues and rate-limit managers guarantee data freshness without slowing the user.
+          </p>
+          <div class="mt-auto pt-2 border-top">
+            <span class="badge bg-body-tertiary text-secondary border small">Async Workers</span>
+            <span class="badge bg-body-tertiary text-secondary border small">Live Polling Status</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pillar 3 -->
+      <div class="col-md-4">
+        <div class="pillar-card">
+          <div class="pillar-icon-box bg-warning-subtle text-warning">
+            <i class="bi bi-calculator-fill"></i>
+          </div>
+          <h5 class="fw-bold mb-2">3. Weighted Formula Engine</h5>
+          <p class="text-secondary small mb-3">
+            Craft custom scoring formulas with platform weights, college CGPA factors, and active backlog deduction penalties. Apply Min-Max, Percentile, or Z-Score statistical normalization across the cohort.
+          </p>
+          <div class="mt-auto pt-2 border-top">
+            <span class="badge bg-body-tertiary text-secondary border small">Min-Max Normalization</span>
+            <span class="badge bg-body-tertiary text-secondary border small">Backlog Deductions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==========================================================================
+     SECTION: 10 SUPPORTED DATA SOURCES ECOSYSTEM
+     ========================================================================== -->
+<section class="py-5 bg-body-tertiary" id="platform-ecosystem">
+  <div class="container py-3">
+    <div class="text-center max-w-750 mx-auto mb-5">
+      <span class="badge bg-info-subtle text-info fw-bold mb-2">COMPREHENSIVE ECOSYSTEM</span>
+      <h2 class="display-6 fw-extrabold mb-3">10 Supported Coding &amp; Academic Data Sources</h2>
+      <p class="text-secondary small">
+        One unified standard that eliminates disjointed PDFs and manual profile checks.
+      </p>
+    </div>
+
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-3">
+      <!-- 1. LeetCode -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-warning-subtle text-warning">
+            <i class="bi bi-code-slash"></i>
+          </div>
+          <h6 class="fw-bold mb-1">LeetCode</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">Easy/Med/Hard Solved, Rating, Acceptance</div>
+        </div>
+      </div>
+
+      <!-- 2. CodeChef -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-danger-subtle text-danger">
+            <i class="bi bi-fire"></i>
+          </div>
+          <h6 class="fw-bold mb-1">CodeChef</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">Global Rating, Stars ★, Division</div>
+        </div>
+      </div>
+
+      <!-- 3. Codeforces -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-primary-subtle text-primary">
+            <i class="bi bi-bar-chart-fill"></i>
+          </div>
+          <h6 class="fw-bold mb-1">Codeforces</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">Elo Rating, Rank Tier, Max Rating</div>
+        </div>
+      </div>
+
+      <!-- 4. GitHub -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-dark-subtle text-body">
+            <i class="bi bi-github"></i>
+          </div>
+          <h6 class="fw-bold mb-1">GitHub</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">Public Repos, Stars, Commits, Activity</div>
+        </div>
+      </div>
+
+      <!-- 5. HackerRank -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-success-subtle text-success">
+            <i class="bi bi-patch-check-fill"></i>
+          </div>
+          <h6 class="fw-bold mb-1">HackerRank</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">Domain Badges, Star Count, Solved</div>
+        </div>
+      </div>
+
+      <!-- 6. GeeksforGeeks -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-success-subtle text-success">
+            <i class="bi bi-terminal-fill"></i>
+          </div>
+          <h6 class="fw-bold mb-1">GeeksforGeeks</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">Coding Score, Institute Rank, Solved</div>
+        </div>
+      </div>
+
+      <!-- 7. AtCoder -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-secondary-subtle text-secondary">
+            <i class="bi bi-diagram-3-fill"></i>
+          </div>
+          <h6 class="fw-bold mb-1">AtCoder</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">Contest Rating, Color Tier, High Score</div>
+        </div>
+      </div>
+
+      <!-- 8. InterviewBit -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-primary-subtle text-primary">
+            <i class="bi bi-bullseye"></i>
+          </div>
+          <h6 class="fw-bold mb-1">InterviewBit</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">Overall Score, Daily Streak, Solved</div>
+        </div>
+      </div>
+
+      <!-- 9. Kaggle -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-info-subtle text-info">
+            <i class="bi bi-trophy-fill"></i>
+          </div>
+          <h6 class="fw-bold mb-1">Kaggle</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">Competitions, Medals, Notebooks</div>
+        </div>
+      </div>
+
+      <!-- 10. College CGPA & Backlogs -->
+      <div class="col">
+        <div class="platform-brand-card h-100">
+          <div class="platform-brand-icon bg-danger-subtle text-danger">
+            <i class="bi bi-mortarboard-fill"></i>
+          </div>
+          <h6 class="fw-bold mb-1">Academics</h6>
+          <div class="text-muted small" style="font-size: 0.75rem;">CGPA Scaling, Backlog Penalty Deductions</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==========================================================================
+     SECTION: 4-STAGE ZERO-BARRIER WORKFLOW PIPELINE
+     ========================================================================== -->
+<section class="py-5" id="how-it-works">
+  <div class="container py-3">
+    <div class="text-center max-w-750 mx-auto mb-5">
+      <span class="badge bg-success-subtle text-success fw-bold mb-2">END-TO-END PIPELINE</span>
+      <h2 class="display-6 fw-extrabold mb-3">How SSVS Streamlines Evaluations</h2>
+      <p class="text-secondary small">
+        From assessment creation to recruiter-ready placement rankings in four automated steps.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <!-- Step 1 -->
+      <div class="col-md-6 col-lg-3">
+        <div class="workflow-step-card">
+          <div class="workflow-step-badge bg-primary text-white">1</div>
+          <h6 class="fw-bold mb-2">Form Published</h6>
+          <p class="text-secondary small mb-0">
+            Faculty author the assessment drive in 2 minutes, choose platform handles to collect, and define custom formula weights.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="col-md-6 col-lg-3">
+        <div class="workflow-step-card">
+          <div class="workflow-step-badge bg-success text-white">2</div>
+          <h6 class="fw-bold mb-2">Zero-Login Entry</h6>
+          <p class="text-secondary small mb-0">
+            Students access the public link or QR code directly. No registration or forgotten passwords—submit handles in seconds with auto-save.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="col-md-6 col-lg-3">
+        <div class="workflow-step-card">
+          <div class="workflow-step-badge bg-warning text-dark">3</div>
+          <h6 class="fw-bold mb-2">Async Harvesting</h6>
+          <p class="text-secondary small mb-0">
+            Background workers query coding profiles across all 10 sources, parse statistics, and feed numbers into the mathematical scoring engine.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="col-md-6 col-lg-3">
+        <div class="workflow-step-card">
+          <div class="workflow-step-badge bg-info text-white">4</div>
+          <h6 class="fw-bold mb-2">Verified Ranks</h6>
+          <p class="text-secondary small mb-0">
+            Live leaderboard updates in real-time. Students receive tamper-proof digital QR scorecards; faculty export formatted Excel workbooks.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==========================================================================
+     SECTION: INSTITUTIONAL PLACEMENT GOVERNANCE SUITE
+     ========================================================================== -->
+<section class="py-5 bg-body-tertiary" id="governance">
+  <div class="container py-3">
+    <div class="text-center max-w-750 mx-auto mb-5">
+      <span class="badge bg-secondary text-secondary-emphasis fw-bold mb-2">ENTERPRISE GRADE</span>
+      <h2 class="display-6 fw-extrabold mb-3">Engineered for University Placement Cells</h2>
+      <p class="text-secondary small">
+        Institutional tools designed to handle thousands of engineering students across departments.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="bento-suite-card">
+          <div class="text-primary fs-3 mb-3"><i class="bi bi-file-earmark-spreadsheet-fill"></i></div>
+          <h6 class="fw-bold mb-2">Multi-Sheet Excel Reports</h6>
+          <p class="text-secondary small mb-0">
+            Export comprehensive workbooks complete with frozen headers, podium medal formatting, raw handles, platform breakdowns, and statistical summaries.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="bento-suite-card">
+          <div class="text-success fs-3 mb-3"><i class="bi bi-columns-gap"></i></div>
+          <h6 class="fw-bold mb-2">Candidate Matrix Comparison</h6>
+          <p class="text-secondary small mb-0">
+            Select 2 to 4 student finalists and inspect their coding profiles side-by-side to break interview ties objectively.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="bento-suite-card">
+          <div class="text-warning fs-3 mb-3"><i class="bi bi-qr-code-scan"></i></div>
+          <h6 class="fw-bold mb-2">Tamper-Evident QR Scorecard</h6>
+          <p class="text-secondary small mb-0">
+            Every candidate receives an official digital scorecard with a tamper-evident QR verification URL for recruiter background checks.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-3">
+        <div class="bento-suite-card">
+          <div class="text-info fs-3 mb-3"><i class="bi bi-shield-check"></i></div>
+          <h6 class="fw-bold mb-2">Immutable Audit Trails</h6>
+          <p class="text-secondary small mb-0">
+            Every manual score adjustment, recalculation, and candidate moderation action is cryptographically logged with timestamps and author records.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==========================================================================
+     SECTION: FREQUENTLY ASKED QUESTIONS (FAQ)
+     ========================================================================== -->
+<section class="py-5" id="faq">
+  <div class="container py-3">
+    <div class="text-center max-w-750 mx-auto mb-5">
+      <span class="badge bg-secondary-subtle text-secondary fw-bold mb-2">COMMON QUESTIONS</span>
+      <h2 class="display-6 fw-extrabold mb-3">Frequently Asked Questions</h2>
+      <p class="text-secondary small">
+        Clarifications on evaluation mechanics, student privacy, and platform integrity.
+      </p>
+    </div>
+
+    <div class="accordion accordion-flush mx-auto shadow-sm rounded-4 border overflow-hidden" id="faqAccordion" style="max-width: 820px; background: var(--bg-surface);">
+      <div class="accordion-item border-bottom">
+        <h2 class="accordion-header" id="faq-heading-1">
+          <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq-collapse-1" aria-expanded="false" aria-controls="faq-collapse-1">
+            Why do students not need to create an account?
+          </button>
+        </h2>
+        <div id="faq-collapse-1" class="accordion-collapse collapse" aria-labelledby="faq-heading-1" data-bs-parent="#faqAccordion">
+          <div class="accordion-body text-secondary small">
+            SSVS removes authentication friction so campus placement drives achieve 100% submission turnout without forgotten passwords or locked accounts. Students access the drive via a direct link or QR code, provide their verified public profile handles, and our automated background workers perform verification directly against the public platform records.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item border-bottom">
+        <h2 class="accordion-header" id="faq-heading-2">
+          <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq-collapse-2" aria-expanded="false" aria-controls="faq-collapse-2">
+            How does the formula engine handle different platform ratings fairly?
+          </button>
+        </h2>
+        <div id="faq-collapse-2" class="accordion-collapse collapse" aria-labelledby="faq-heading-2" data-bs-parent="#faqAccordion">
+          <div class="accordion-body text-secondary small">
+            Faculty can configure individual metric multipliers or enable statistical normalization (Min-Max Scaling, Percentile Ranks, or Z-Score). This ensures that a 1900 rating on CodeChef is normalized proportionately against an 1800 rating on LeetCode without skewing the composite grade.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item border-bottom">
+        <h2 class="accordion-header" id="faq-heading-3">
+          <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq-collapse-3" aria-expanded="false" aria-controls="faq-collapse-3">
+            Can recruiters verify student scorecards independently?
+          </button>
+        </h2>
+        <div id="faq-collapse-3" class="accordion-collapse collapse" aria-labelledby="faq-heading-3" data-bs-parent="#faqAccordion">
+          <div class="accordion-body text-secondary small">
+            Yes. Every candidate scorecard contains a unique tamper-evident verification QR code and URL. When scanned by hiring teams during an interview, it opens the immutable server-verified record containing live timestamps and individual platform metric breakdowns.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="faq-heading-4">
+          <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq-collapse-4" aria-expanded="false" aria-controls="faq-collapse-4">
+            How are duplicate or false handle submissions prevented?
+          </button>
+        </h2>
+        <div id="faq-collapse-4" class="accordion-collapse collapse" aria-labelledby="faq-heading-4" data-bs-parent="#faqAccordion">
+          <div class="accordion-body text-secondary small">
+            Assessment forms enforce deduplication rules on roll numbers, email addresses, and platform handles. Additionally, if an invalid handle is submitted, the background scraper flags the entry for faculty moderation so dishonest entries can be reviewed or disqualified immediately.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==========================================================================
+     CLOSING DISCOVERY BANNER (Strictly Non-Redundant: Zero Login Elements)
+     ========================================================================== -->
+<section class="container py-4 mb-5">
+  <div class="landing-cta-banner p-5 text-center">
+    <div class="max-w-750 mx-auto">
+      <span class="badge bg-primary-subtle text-primary fw-bold mb-2">CAMPUS LEADERBOARD DIRECTORY</span>
+      <h3 class="display-6 fw-extrabold mb-3">Explore College Cohort Ranks</h3>
+      <p class="text-secondary mb-4 mx-auto" style="max-width: 600px;">
+        Search published assessment drives across engineering colleges and discover top competitive programming talent.
+      </p>
+      <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+        <a href="{{ url_for('student.public_leaderboard_search') }}" class="btn btn-primary-gradient px-4 py-3 shadow-sm">
+          <i class="bi bi-trophy-fill text-warning me-2"></i> Browse Public Leaderboards
+        </a>
+        <a href="#hero" class="btn btn-outline-secondary px-4 py-3">
+          <i class="bi bi-arrow-up-circle me-1"></i> Back to Top
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Interactive Simulator Tab Switcher
+  document.addEventListener('DOMContentLoaded', function() {
+    const tabBtns = document.querySelectorAll('#simulator-tabs .preview-tab-btn');
+    const tabPanels = {
+      'tab-score': document.getElementById('tab-score'),
+      'tab-crawler': document.getElementById('tab-crawler'),
+      'tab-verify': document.getElementById('tab-verify')
+    };
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        const target = this.getAttribute('data-tab');
+        Object.keys(tabPanels).forEach(key => {
+          if (tabPanels[key]) {
+            if (key === target) {
+              tabPanels[key].classList.remove('d-none');
+            } else {
+              tabPanels[key].classList.add('d-none');
+            }
+          }
+        });
+      });
+    });
+  });
+</script>
 {% endblock %}

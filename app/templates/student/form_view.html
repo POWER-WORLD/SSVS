@@ -76,7 +76,7 @@
                   {% elif f.field_type == 'dropdown' %}
                     <select class="form-select form-select-modern" id="{{ f.field_key }}" name="{{ f.field_key }}" {{ 'required' if f.is_required else '' }}>
                       <option value="">-- Select Option --</option>
-                      {% for opt in f.options.all() %}
+                      {% for opt in f.options_list %}
                         <option value="{{ opt.value }}">{{ opt.label }}</option>
                       {% endfor %}
                     </select>

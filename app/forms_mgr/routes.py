@@ -1,6 +1,6 @@
 import json
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, abort, send_file
 from flask_login import login_required, current_user
 from app.models import db
@@ -22,6 +22,15 @@ forms_mgr_bp = Blueprint('forms_mgr', __name__, url_prefix='/forms')
 @login_required
 def list_forms():
     forms = current_user.forms.order_by(Form.created_at.desc()).all()
+    if forms:
+        form_ids = [f.id for f in forms]
+        sub_counts = dict(
+            db.session.query(Submission.form_id, db.func.count(Submission.id))
+            .filter(Submission.form_id.in_(form_ids))
+            .group_by(Submission.form_id).all()
+        )
+        for f in forms:
+            f._submission_count_cache = sub_counts.get(f.id, 0)
     return render_template('forms/list.html', forms=forms)
 
 @forms_mgr_bp.route('/create', methods=['GET', 'POST'])
@@ -336,6 +345,7 @@ def submissions(form_id):
         )
         
     submissions_list = query.order_by(Submission.submitted_at.desc()).all()
+    Submission.preload_for_list(submissions_list)
     departments = [d[0] for d in db.session.query(Submission.department).filter(Submission.form_id == form.id, Submission.department != None).distinct().all()]
     duplicates = find_duplicate_handles(form.id)
     
@@ -497,7 +507,7 @@ def export_custom_excel(form_id):
             selected_cols = [c.strip() for c in raw_cols.split(',') if c.strip()]
             
     stream = ExcelExporter.generate_custom_export(form, submission_ids=selected_ids, column_keys=selected_cols)
-    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M')
+    timestamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M')
     filename = f"SSVS_Custom_Export_{form.slug}_{timestamp}.xlsx"
     
     return send_file(
@@ -587,11 +597,13 @@ def compare_submissions(form_id):
         flash('Please select at least 2 candidates for comparison.', 'warning')
         return redirect(url_for('forms_mgr.submissions', form_id=form.id))
 
+    Submission.preload_for_list(subs)
+
     # Pre-extract comparison metrics
     candidates_data = []
     for s in subs:
         score = s.latest_score
-        prof_map = {p.platform_name.lower(): p for p in s.platform_profiles.all()}
+        prof_map = {p.platform_name.lower(): p for p in s.platform_profiles_list}
         lc = prof_map.get('leetcode')
         cc = prof_map.get('codechef')
         cf = prof_map.get('codeforces')

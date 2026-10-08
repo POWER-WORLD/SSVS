@@ -15,6 +15,7 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 def get_form_fields(form_id):
     form = Form.query.filter_by(id=form_id, teacher_id=current_user.id).first_or_404()
     fields = form.fields.order_by(FormField.display_order.asc()).all()
+    FormField.preload_for_fields(fields)
     return jsonify({
         'status': 'success',
         'form': form.to_dict(),
@@ -148,7 +149,7 @@ def save_form_fields(form_id):
 def get_submission_status(uuid):
     submission = Submission.query.filter_by(uuid=uuid).first_or_404()
     score = submission.latest_score
-    profiles = [p.to_dict() for p in submission.platform_profiles.all()]
+    profiles = [p.to_dict() for p in submission.platform_profiles_list]
     
     return jsonify({
         'status': submission.status,
