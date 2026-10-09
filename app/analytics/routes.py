@@ -14,7 +14,18 @@ analytics_bp = Blueprint('analytics', __name__, url_prefix='/analytics')
 @login_required
 def dashboard(form_id):
     form = Form.query.filter_by(id=form_id, teacher_id=current_user.id).first_or_404()
-    entries = LeaderboardEntry.query.filter_by(form_id=form.id).order_by(LeaderboardEntry.rank.asc()).all()
+    
+    entries = LeaderboardEntry.query.options(
+        db.selectinload(LeaderboardEntry.submission)
+    ).filter_by(form_id=form.id).order_by(LeaderboardEntry.rank.asc()).all()
+
+    # Automatically compute leaderboard cache if submissions exist but rankings cache is empty
+    if not entries and form.submission_count > 0:
+        from app.scoring_engine.formula_evaluator import FormulaEvaluator
+        FormulaEvaluator.update_form_ranks_and_leaderboard(form.id)
+        entries = LeaderboardEntry.query.options(
+            db.selectinload(LeaderboardEntry.submission)
+        ).filter_by(form_id=form.id).order_by(LeaderboardEntry.rank.asc()).all()
     
     total_count = len(entries)
     scores = [e.total_score for e in entries] if entries else []
@@ -72,6 +83,8 @@ def dashboard(form_id):
         elif 'kaggle' in pn:
             platform_counts['Kaggle'] += cnt
 
+    total_platform_profiles = sum(platform_counts.values())
+
     # 3. Department averages
     dept_scores = {}
     for e in entries:
@@ -102,6 +115,7 @@ def dashboard(form_id):
         avg_cgpa=avg_cgpa,
         histogram=histogram,
         platform_counts=platform_counts,
+        total_platform_profiles=total_platform_profiles,
         dept_labels=dept_labels,
         dept_avgs=dept_avgs,
         top_coder_names=top_coder_names,
@@ -109,6 +123,15 @@ def dashboard(form_id):
         scatter_points=scatter_points,
         entries=entries
     )
+
+@analytics_bp.route('/<int:form_id>/recalculate', methods=['POST'])
+@login_required
+def recalculate(form_id):
+    form = Form.query.filter_by(id=form_id, teacher_id=current_user.id).first_or_404()
+    from app.scoring_engine.formula_evaluator import FormulaEvaluator
+    FormulaEvaluator.update_form_ranks_and_leaderboard(form.id)
+    flash('Cohort evaluations and leaderboard rankings updated successfully.', 'success')
+    return redirect(url_for('analytics.dashboard', form_id=form.id))
 
 @analytics_bp.route('/<int:form_id>/export/excel')
 @login_required

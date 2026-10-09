@@ -1,117 +1,268 @@
 {% extends "base.html" %}
 
-{% block title %}Cohort Analytics — {{ form.title }} | SSVS{% endblock %}
+{% block title %}Cohort Analytics & Visual Intelligence — {{ form.title }} | SSVS{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-4 py-4">
-  <!-- Top Bar -->
-  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+  <!-- Top Navigation & Utility Bar -->
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4 pb-3 border-bottom">
     <div class="d-flex align-items-center gap-3">
-      <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i>
+      <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary rounded-3 px-3 py-2" title="Return to Submissions">
+        <i class="bi bi-arrow-left me-1"></i> Submissions
       </a>
       <div>
-        <h3 class="fw-bold mb-0">Cohort Analytics & Visual Intelligence</h3>
-        <div class="small text-muted">{{ form.title }} &bull; {{ total_count }} Student Evaluations Analyzed</div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <h3 class="fw-bold mb-0">Cohort Visual Intelligence</h3>
+          <span class="badge bg-primary-subtle text-primary fw-semibold px-2 py-1">Analytics Studio</span>
+          {% if form.is_open %}
+            <span class="badge bg-success-subtle text-success small"><i class="bi bi-broadcast me-1"></i> Live</span>
+          {% else %}
+            <span class="badge bg-secondary-subtle text-secondary small">Closed</span>
+          {% endif %}
+        </div>
+        <div class="small text-muted mt-1">
+          <i class="bi bi-mortarboard me-1"></i> <strong>{{ form.title }}</strong> &bull;
+          <span class="fw-semibold text-primary">{{ total_count }}</span> Evaluated Candidate{% if total_count != 1 %}s{% endif %} &bull;
+          <span class="fw-semibold text-success">{{ total_platform_profiles }}</span> Linked Coding Profile{% if total_platform_profiles != 1 %}s{% endif %}
+        </div>
       </div>
     </div>
-    <div class="d-flex gap-2">
-      <a href="{{ url_for('analytics.export_excel', form_id=form.id) }}" class="btn btn-success d-flex align-items-center gap-2 fw-semibold">
-        <i class="bi bi-file-earmark-excel-fill"></i> Download Multi-Sheet Excel
+
+    <!-- Action Toolbars -->
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <!-- Recalculate Sync Action -->
+      <form method="POST" action="{{ url_for('analytics.recalculate', form_id=form.id) }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-primary d-inline-flex align-items-center gap-2 fw-semibold" title="Re-evaluate submissions and refresh rankings cache">
+          <i class="bi bi-arrow-clockwise"></i> Recalculate
+        </button>
+      </form>
+
+      <!-- Custom Excel Builder -->
+      <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}#export" class="btn btn-outline-success d-inline-flex align-items-center gap-2 fw-semibold" title="Launch custom selective Excel exporter">
+        <i class="bi bi-file-earmark-spreadsheet-fill"></i> Custom Export
       </a>
-      <a href="{{ url_for('student.view_leaderboard', slug=form.slug) }}" target="_blank" class="btn btn-outline-warning d-flex align-items-center gap-2 fw-semibold">
-        <i class="bi bi-trophy-fill"></i> View Leaderboard
-      </a>
+
+      <!-- Comprehensive Multi-Sheet Excel -->
+      {% if total_count > 0 %}
+        <a href="{{ url_for('analytics.export_excel', form_id=form.id) }}" class="btn btn-success d-inline-flex align-items-center gap-2 fw-semibold">
+          <i class="bi bi-file-earmark-excel-fill"></i> Download Multi-Sheet Excel
+        </a>
+      {% else %}
+        <button class="btn btn-success d-inline-flex align-items-center gap-2 fw-semibold" disabled title="Requires at least 1 evaluated candidate">
+          <i class="bi bi-file-earmark-excel-fill"></i> Multi-Sheet Excel
+        </button>
+      {% endif %}
+
+      <!-- Public / Student Leaderboard -->
+      {% if form.enable_leaderboard %}
+        <a href="{{ url_for('student.view_leaderboard', slug=form.slug) }}" target="_blank" class="btn btn-outline-warning d-inline-flex align-items-center gap-2 fw-semibold" title="Open candidate leaderboard view in new tab">
+          <i class="bi bi-trophy-fill"></i> View Leaderboard <i class="bi bi-box-arrow-up-right small"></i>
+        </a>
+      {% else %}
+        <button class="btn btn-outline-secondary d-inline-flex align-items-center gap-2 fw-semibold opacity-75" disabled title="Leaderboard is currently disabled in form configuration">
+          <i class="bi bi-trophy"></i> Leaderboard Disabled
+        </button>
+      {% endif %}
     </div>
   </div>
 
-  <!-- KPI Summary Cards -->
+  <!-- Empty State Callout when Cohort has 0 Evaluations -->
+  {% if total_count == 0 %}
+  <div class="card card-modern border-warning border-opacity-25 bg-warning-subtle bg-opacity-10 p-4 mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle bg-warning text-dark p-3 fs-3 d-inline-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+          <i class="bi bi-info-circle-fill"></i>
+        </div>
+        <div>
+          <h5 class="fw-bold mb-1">Awaiting Candidate Evaluation Data</h5>
+          <p class="small text-muted mb-0">
+            {% if form.submission_count > 0 %}
+              <strong>{{ form.submission_count }}</strong> submission(s) have been received. Click <strong>Recalculate</strong> above to compute scores using your scoring formula.
+            {% else %}
+              No student submissions have been recorded for this assessment drive yet. Share the assessment form link to begin collecting candidate profiles.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        {% if form.submission_count > 0 %}
+          <form method="POST" action="{{ url_for('analytics.recalculate', form_id=form.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-warning fw-semibold d-inline-flex align-items-center gap-2">
+              <i class="bi bi-play-circle-fill"></i> Calculate Scores Now
+            </button>
+          </form>
+        {% else %}
+          <a href="{{ url_for('forms_mgr.share', form_id=form.id) }}" class="btn btn-primary fw-semibold d-inline-flex align-items-center gap-2">
+            <i class="bi bi-share-fill"></i> Share Assessment Form
+          </a>
+        {% endif %}
+        <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-outline-secondary fw-semibold">
+          View Submissions
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- KPI Summary Cards Row -->
   <div class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-2">
-      <div class="card card-modern p-3 text-center">
-        <div class="text-secondary small fw-bold text-uppercase">Candidates</div>
-        <div class="fs-3 fw-extrabold text-primary">{{ total_count }}</div>
-        <div class="small text-muted">Evaluated</div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card card-modern p-3 text-center h-100">
+        <div class="text-secondary small fw-bold text-uppercase tracking-wider">Candidates</div>
+        <div class="fs-2 fw-extrabold text-primary my-1">{{ total_count }}</div>
+        <div class="small text-muted"><i class="bi bi-people-fill me-1"></i> Evaluated</div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-2">
-      <div class="card card-modern p-3 text-center">
-        <div class="text-secondary small fw-bold text-uppercase">Mean Score</div>
-        <div class="fs-3 fw-extrabold">{{ avg_score }}</div>
-        <div class="small text-muted">Out of 100</div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card card-modern p-3 text-center h-100">
+        <div class="text-secondary small fw-bold text-uppercase tracking-wider">Mean Score</div>
+        <div class="fs-2 fw-extrabold text-dark my-1">{{ avg_score }}</div>
+        <div class="small text-muted"><i class="bi bi-calculator me-1"></i> Scale of 100</div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-2">
-      <div class="card card-modern p-3 text-center">
-        <div class="text-secondary small fw-bold text-uppercase">Median Score</div>
-        <div class="fs-3 fw-extrabold">{{ median_score }}</div>
-        <div class="small text-muted">Cohort 50th %</div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card card-modern p-3 text-center h-100">
+        <div class="text-secondary small fw-bold text-uppercase tracking-wider">Median Score</div>
+        <div class="fs-2 fw-extrabold text-indigo my-1">{{ median_score }}</div>
+        <div class="small text-muted"><i class="bi bi-pie-chart me-1"></i> 50th Percentile</div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-2">
-      <div class="card card-modern p-3 text-center">
-        <div class="text-secondary small fw-bold text-uppercase">Top Score</div>
-        <div class="fs-3 fw-extrabold text-warning">{{ highest_score }}</div>
-        <div class="small text-warning"><i class="bi bi-trophy-fill"></i> Gold Tier</div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card card-modern p-3 text-center h-100">
+        <div class="text-secondary small fw-bold text-uppercase tracking-wider">Top Score</div>
+        <div class="fs-2 fw-extrabold text-warning my-1">{{ highest_score }}</div>
+        <div class="small text-warning fw-semibold"><i class="bi bi-trophy-fill me-1"></i> Gold Tier</div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-2">
-      <div class="card card-modern p-3 text-center">
-        <div class="text-secondary small fw-bold text-uppercase">Lowest Score</div>
-        <div class="fs-3 fw-extrabold text-danger">{{ lowest_score }}</div>
-        <div class="small text-muted">Benchmark Floor</div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card card-modern p-3 text-center h-100">
+        <div class="text-secondary small fw-bold text-uppercase tracking-wider">Floor Score</div>
+        <div class="fs-2 fw-extrabold text-danger my-1">{{ lowest_score }}</div>
+        <div class="small text-muted"><i class="bi bi-arrow-down-circle me-1"></i> Cohort Minimum</div>
       </div>
     </div>
-    <div class="col-sm-6 col-xl-2">
-      <div class="card card-modern p-3 text-center">
-        <div class="text-secondary small fw-bold text-uppercase">Average CGPA</div>
-        <div class="fs-3 fw-extrabold text-info">{{ avg_cgpa }}</div>
-        <div class="small text-muted">Scale of 10.0</div>
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="card card-modern p-3 text-center h-100">
+        <div class="text-secondary small fw-bold text-uppercase tracking-wider">Average CGPA</div>
+        <div class="fs-2 fw-extrabold text-info my-1">{{ avg_cgpa }}</div>
+        <div class="small text-muted"><i class="bi bi-mortarboard-fill me-1"></i> Scale of 10.0</div>
       </div>
     </div>
   </div>
 
-  <!-- Charts Row 1 -->
+  <!-- Charts Row 1: Performance Distribution & Platform Adoption -->
   <div class="row g-4 mb-4">
     <!-- Score Distribution Histogram -->
     <div class="col-lg-7">
       <div class="card card-modern p-4 h-100">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill text-primary me-2"></i> Performance Score Distribution</h5>
-          <span class="badge bg-primary-subtle text-primary small">5 Score Tiers</span>
+          <div>
+            <h5 class="fw-bold mb-0">
+              <i class="bi bi-bar-chart-fill text-primary me-2"></i> Performance Score Distribution
+            </h5>
+            <div class="small text-muted">Frequency histogram across 5 standardized competency bands</div>
+          </div>
+          <span class="badge bg-primary-subtle text-primary small fw-semibold">5 Tiers</span>
         </div>
-        <div style="height: 280px;">
-          <canvas id="scoreHistogramChart"></canvas>
-        </div>
+
+        {% if total_count > 0 %}
+          <div style="position: relative; height: 280px; width: 100%;">
+            <canvas id="scoreHistogramChart"></canvas>
+          </div>
+        {% else %}
+          <div class="d-flex flex-column align-items-center justify-content-center text-center p-4" style="height: 280px;">
+            <div class="rounded-circle bg-secondary-subtle p-3 mb-3 text-secondary">
+              <i class="bi bi-bar-chart display-6"></i>
+            </div>
+            <h6 class="fw-bold mb-1">No Distribution Data</h6>
+            <p class="text-muted small mb-0">The score distribution histogram will appear after candidate submissions are evaluated.</p>
+          </div>
+        {% endif %}
       </div>
     </div>
 
-    <!-- Platform Participation Breakdown -->
+    <!-- Platform Adoption Breakdown -->
     <div class="col-lg-5">
-      <div class="card card-modern p-4 h-100">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-bold mb-0"><i class="bi bi-pie-chart-fill text-warning me-2"></i> Platform Adoption</h5>
-          <span class="badge bg-warning-subtle text-warning small">Profile Distribution</span>
+      <div class="card card-modern p-4 h-100 d-flex flex-column justify-content-between">
+        <div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+              <h5 class="fw-bold mb-0">
+                <i class="bi bi-pie-chart-fill text-warning me-2"></i> Platform Adoption & Profiles
+              </h5>
+              <div class="small text-muted">Distribution of student profiles submitted across verified platforms</div>
+            </div>
+            <span class="badge bg-success-subtle text-success small fw-semibold">
+              {{ total_platform_profiles }} Active
+            </span>
+          </div>
+
+          {% if total_platform_profiles > 0 %}
+            <div style="position: relative; height: 250px; width: 100%;">
+              <canvas id="platformPieChart"></canvas>
+            </div>
+          {% else %}
+            <div class="d-flex flex-column align-items-center justify-content-center text-center p-4" style="height: 250px;">
+              <div class="rounded-circle bg-secondary-subtle p-3 mb-3 text-secondary">
+                <i class="bi bi-pie-chart display-6"></i>
+              </div>
+              <h6 class="fw-bold mb-1">No Platform Profiles Connected</h6>
+              <p class="text-muted small mb-0">Platform adoption will be graphed once candidates submit their coding handles.</p>
+            </div>
+          {% endif %}
         </div>
-        <div style="height: 280px;" class="d-flex align-items-center justify-content-center">
-          <canvas id="platformPieChart"></canvas>
+
+        <!-- Platform Profile Count Breakdown Pills -->
+        <div class="pt-3 mt-3 border-top">
+          <div class="d-flex flex-wrap gap-2 justify-content-center">
+            {% for p_name, p_cnt in platform_counts.items() %}
+              {% if p_cnt > 0 %}
+                <span class="badge rounded-pill text-bg-light border px-2 py-1 small d-inline-flex align-items-center gap-1 shadow-xs">
+                  <span class="platform-indicator platform-indicator-{{ p_name|lower }}"></span>
+                  <span class="fw-semibold">{{ p_name }}:</span> <span class="fw-bold">{{ p_cnt }}</span>
+                </span>
+              {% endif %}
+            {% endfor %}
+            {% if total_platform_profiles == 0 %}
+              <span class="small text-muted fst-italic">No coding platforms linked yet</span>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Charts Row 2 -->
+  <!-- Charts Row 2: Top Coders Leaderboard & Department Benchmark -->
   <div class="row g-4 mb-4">
-    <!-- Top Coders Leaderboard -->
+    <!-- Top 10 Coders Horizontal Bar Chart -->
     <div class="col-lg-6">
       <div class="card card-modern p-4 h-100">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-bold mb-0"><i class="bi bi-award-fill text-warning me-2"></i> Top 10 Performers</h5>
-          <span class="badge bg-success-subtle text-success small">Tier-1 Candidates</span>
+          <div>
+            <h5 class="fw-bold mb-0">
+              <i class="bi bi-award-fill text-warning me-2"></i> Top 10 Performers
+            </h5>
+            <div class="small text-muted">Cohort frontrunners ranked by total normalized score</div>
+          </div>
+          <span class="badge bg-success-subtle text-success small fw-semibold">Tier-1 Candidates</span>
         </div>
-        <div style="height: 300px;">
-          <canvas id="topCodersChart"></canvas>
-        </div>
+
+        {% if top_coder_names and top_coder_names | length > 0 %}
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="topCodersChart"></canvas>
+          </div>
+        {% else %}
+          <div class="d-flex flex-column align-items-center justify-content-center text-center p-4" style="height: 300px;">
+            <div class="rounded-circle bg-secondary-subtle p-3 mb-3 text-secondary">
+              <i class="bi bi-trophy display-6"></i>
+            </div>
+            <h6 class="fw-bold mb-1">No Evaluated Candidates</h6>
+            <p class="text-muted small mb-0">Candidate leaderboard will rank top coders once scores are computed.</p>
+          </div>
+        {% endif %}
       </div>
     </div>
 
@@ -119,22 +270,223 @@
     <div class="col-lg-6">
       <div class="card card-modern p-4 h-100">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-bold mb-0"><i class="bi bi-diagram-3-fill text-info me-2"></i> Department Averages</h5>
-          <span class="badge bg-info-subtle text-info small">Cross-Branch Benchmark</span>
+          <div>
+            <h5 class="fw-bold mb-0">
+              <i class="bi bi-diagram-3-fill text-info me-2"></i> Department Averages
+            </h5>
+            <div class="small text-muted">Inter-departmental performance index benchmark</div>
+          </div>
+          <span class="badge bg-info-subtle text-info small fw-semibold">Cross-Branch Benchmark</span>
         </div>
-        <div style="height: 300px;">
-          <canvas id="departmentChart"></canvas>
+
+        {% if dept_labels and dept_labels | length > 0 %}
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="departmentChart"></canvas>
+          </div>
+        {% else %}
+          <div class="d-flex flex-column align-items-center justify-content-center text-center p-4" style="height: 300px;">
+            <div class="rounded-circle bg-secondary-subtle p-3 mb-3 text-secondary">
+              <i class="bi bi-diagram-3 display-6"></i>
+            </div>
+            <h6 class="fw-bold mb-1">No Branch Data Available</h6>
+            <p class="text-muted small mb-0">Department averages will compare performance when candidates specify academic departments.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 3: CGPA vs Performance Score Correlation Scatter Plot -->
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div class="card card-modern p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">
+              <i class="bi bi-diagram-2-fill text-primary me-2"></i> Academic CGPA vs Coding Performance Correlation
+            </h5>
+            <div class="small text-muted">Visual matrix examining how academic standing relates to practical programming capability</div>
+          </div>
+          <span class="badge bg-primary-subtle text-primary small fw-semibold">
+            {{ scatter_points | length }} Candidates Plotted
+          </span>
+        </div>
+
+        {% if scatter_points and scatter_points | length > 0 %}
+          <div style="position: relative; height: 320px; width: 100%;">
+            <canvas id="scatterCorrelationChart"></canvas>
+          </div>
+        {% else %}
+          <div class="d-flex flex-column align-items-center justify-content-center text-center p-4" style="height: 250px;">
+            <div class="rounded-circle bg-secondary-subtle p-3 mb-3 text-secondary">
+              <i class="bi bi-scatter display-6"></i>
+            </div>
+            <h6 class="fw-bold mb-1">No Academic Correlation Data</h6>
+            <p class="text-muted small mb-0">Scatter analysis plots CGPA vs evaluated coding scores for candidates with academic records.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Cohort Performance Roster & Evaluation Matrix -->
+  {% if entries and entries | length > 0 %}
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div class="card card-modern p-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+          <div>
+            <h5 class="fw-bold mb-0">
+              <i class="bi bi-table text-success me-2"></i> Cohort Evaluation Roster & Rankings
+            </h5>
+            <div class="small text-muted">Granular evaluated metrics for all registered candidates in this drive</div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <div class="input-group input-group-sm" style="max-width: 260px;">
+              <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-search"></i></span>
+              <input type="text" id="rosterSearchInput" class="form-control border-start-0" placeholder="Filter candidates...">
+            </div>
+            <span class="badge bg-secondary-subtle text-secondary small fw-semibold" id="rosterCountBadge">
+              {{ entries | length }} Total
+            </span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="cohortRosterTable">
+            <thead class="table-light small text-uppercase">
+              <tr>
+                <th style="width: 70px;">Rank</th>
+                <th>Candidate</th>
+                <th>Roll Number</th>
+                <th>Department</th>
+                <th class="text-center">CGPA</th>
+                <th class="text-center">Coding Score</th>
+                <th class="text-center">Total Score</th>
+                <th class="text-center">Grade</th>
+                <th class="text-center">Percentile</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in entries %}
+              <tr>
+                <td>
+                  {% if entry.rank == 1 %}
+                    <span class="badge bg-warning text-dark fw-bold px-2 py-1"><i class="bi bi-trophy-fill me-1"></i> #1</span>
+                  {% elif entry.rank == 2 %}
+                    <span class="badge bg-secondary text-white fw-bold px-2 py-1">#2</span>
+                  {% elif entry.rank == 3 %}
+                    <span class="badge bg-danger-subtle text-danger fw-bold px-2 py-1">#3</span>
+                  {% else %}
+                    <span class="badge bg-light text-secondary border fw-bold px-2 py-1">#{{ entry.rank }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="fw-bold text-truncate" style="max-width: 200px;">{{ entry.student_name }}</div>
+                  {% if entry.submission and entry.submission.email %}
+                    <div class="small text-muted text-truncate" style="max-width: 200px;">{{ entry.submission.email }}</div>
+                  {% endif %}
+                </td>
+                <td class="font-monospace small">{{ entry.roll_number }}</td>
+                <td class="small">{{ entry.department or 'Unspecified' }}</td>
+                <td class="text-center fw-semibold">
+                  {% if entry.cgpa %}
+                    {{ entry.cgpa }}
+                  {% else %}
+                    <span class="text-muted">&mdash;</span>
+                  {% endif %}
+                </td>
+                <td class="text-center fw-semibold text-primary">
+                  {{ entry.coding_score | round(1) if entry.coding_score else '0.0' }}
+                </td>
+                <td class="text-center">
+                  <span class="fs-6 fw-extrabold {% if entry.total_score >= 80 %}text-success{% elif entry.total_score >= 60 %}text-primary{% elif entry.total_score >= 40 %}text-warning{% else %}text-danger{% endif %}">
+                    {{ entry.total_score | round(1) }}
+                  </span>
+                  <span class="small text-muted">/100</span>
+                </td>
+                <td class="text-center">
+                  {% set calc_grade = 'A+' if entry.total_score >= 85 else ('A' if entry.total_score >= 70 else ('B' if entry.total_score >= 55 else ('C' if entry.total_score >= 40 else 'D'))) %}
+                  <span class="badge {% if calc_grade == 'A+' %}bg-success{% elif calc_grade == 'A' %}bg-primary{% elif calc_grade == 'B' %}bg-info text-dark{% elif calc_grade == 'C' %}bg-warning text-dark{% else %}bg-secondary{% endif %} fw-bold px-2 py-1">
+                    {{ calc_grade }}
+                  </span>
+                </td>
+                <td class="text-center small text-muted">
+                  {{ entry.percentile | round(1) if entry.percentile else '0.0' }}%
+                </td>
+                <td class="text-end">
+                  {% if entry.submission_id %}
+                    <a href="{{ url_for('forms_mgr.submission_detail', form_id=form.id, submission_id=entry.submission_id) }}" class="btn btn-sm btn-outline-secondary rounded-2" title="Inspect Candidate Profile & Calculations">
+                      <i class="bi bi-eye"></i> View
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   </div>
+  {% endif %}
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<!-- Server-Rendered Analytics JSON Island -->
+<script id="analyticsData" type="application/json">
+{
+  "histogram": {{ histogram|tojson }},
+  "platformCounts": {{ platform_counts|tojson }},
+  "topCoderNames": {{ top_coder_names|tojson }},
+  "topCoderScores": {{ top_coder_scores|tojson }},
+  "deptLabels": {{ dept_labels|tojson }},
+  "deptAvgs": {{ dept_avgs|tojson }},
+  "scatterPoints": {{ scatter_points|tojson }}
+}
+</script>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // 1. Score Distribution Histogram
+    // Determine theme mode for responsive Chart.js styling
+    function isDarkMode() {
+      return document.documentElement.getAttribute('data-bs-theme') === 'dark' ||
+             document.documentElement.getAttribute('data-theme') === 'dark';
+    }
+
+    const textMutedColor = isDarkMode() ? '#94a3b8' : '#64748b';
+    const gridLineColor = isDarkMode() ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+    // Safely extract server-rendered analytics datasets from JSON data island
+    const analyticsDataElement = document.getElementById('analyticsData');
+    let analyticsConfig = {};
+    if (analyticsDataElement) {
+      try {
+        analyticsConfig = JSON.parse(analyticsDataElement.textContent || '{}');
+      } catch (parseError) {
+        console.error('Failed to parse analytics JSON configuration payload:', parseError);
+      }
+    }
+
+    const histogramData = Array.isArray(analyticsConfig.histogram) ? analyticsConfig.histogram : [];
+    const rawPlatformCounts = analyticsConfig.platformCounts || {};
+    const coderLabels = Array.isArray(analyticsConfig.topCoderNames) ? analyticsConfig.topCoderNames : [];
+    const coderScores = Array.isArray(analyticsConfig.topCoderScores) ? analyticsConfig.topCoderScores : [];
+    const deptLabels = Array.isArray(analyticsConfig.deptLabels) ? analyticsConfig.deptLabels : [];
+    const deptAvgs = Array.isArray(analyticsConfig.deptAvgs) ? analyticsConfig.deptAvgs : [];
+    const rawScatterPoints = Array.isArray(analyticsConfig.scatterPoints) ? analyticsConfig.scatterPoints : [];
+
+    // Global Chart.js Font & Palette Configuration
+    if (window.Chart) {
+      Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+      Chart.defaults.color = textMutedColor;
+      Chart.defaults.borderColor = gridLineColor;
+    }
+
+    // 1. Performance Score Distribution Histogram
     const ctxHisto = document.getElementById('scoreHistogramChart');
     if (ctxHisto) {
       new Chart(ctxHisto, {
@@ -142,84 +494,273 @@
         data: {
           labels: ['0-20 (Basic)', '21-40 (Novice)', '41-60 (Intermediate)', '61-80 (Advanced)', '81-100 (Master)'],
           datasets: [{
-            label: 'Number of Students',
-            data: {{ histogram|tojson }},
+            label: 'Candidates',
+            data: histogramData,
             backgroundColor: ['#ef4444', '#f97316', '#eab308', '#3b82f6', '#10b981'],
-            borderRadius: 6
+            borderRadius: 6,
+            borderSkipped: false
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  return ` ${ctx.raw} Candidate(s) in this tier`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 },
+              grid: { color: gridLineColor }
+            }
+          }
         }
       });
     }
 
-    // 2. Platform Adoption Pie
+    // 2. Platform Adoption & Profiles Doughnut Chart
     const ctxPie = document.getElementById('platformPieChart');
     if (ctxPie) {
-      new Chart(ctxPie, {
-        type: 'doughnut',
-        data: {
-          labels: Object.keys({{ platform_counts|tojson }}),
-          datasets: [{
-            data: Object.values({{ platform_counts|tojson }}),
-            backgroundColor: ['#f59e0b', '#dc2626', '#3b82f6', '#1e293b', '#10b981']
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom' } }
-        }
-      });
+      // Standardized Brand Colors for all supported platforms
+      const platformBrandColors = {
+        'LeetCode': '#FFA116',
+        'CodeChef': '#8B5A2B',
+        'Codeforces': '#1F8ACB',
+        'GitHub': '#24292E',
+        'HackerRank': '#2EC866',
+        'GeeksforGeeks': '#2F8D46',
+        'AtCoder': '#6366F1',
+        'InterviewBit': '#E85B5B',
+        'Kaggle': '#20BEFF'
+      };
+
+      // Filter only active platforms with count > 0 to eliminate legend clutter
+      const activeEntries = Object.entries(rawPlatformCounts).filter(([_, count]) => count > 0);
+      const activeLabels = activeEntries.map(([name]) => name);
+      const activeValues = activeEntries.map(([_, count]) => count);
+      const activeColors = activeLabels.map(name => platformBrandColors[name] || '#6366f1');
+
+      if (activeValues.length > 0) {
+        new Chart(ctxPie, {
+          type: 'doughnut',
+          data: {
+            labels: activeLabels,
+            datasets: [{
+              data: activeValues,
+              backgroundColor: activeColors,
+              borderWidth: 2,
+              borderColor: isDarkMode() ? '#1e293b' : '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 12,
+                  boxHeight: 12,
+                  padding: 12,
+                  font: { size: 11 }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    const total = activeValues.reduce((a, b) => a + b, 0);
+                    const val = ctx.raw || 0;
+                    const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                    return ` ${ctx.label}: ${val} profile(s) (${pct}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
     }
 
-    // 3. Top Coders Horizontal Bar
+    // 3. Top 10 Performers Horizontal Bar Chart
     const ctxTop = document.getElementById('topCodersChart');
     if (ctxTop) {
-      new Chart(ctxTop, {
-        type: 'bar',
-        data: {
-          labels: {{ top_coder_names|tojson }},
-          datasets: [{
-            label: 'Performance Score',
-            data: {{ top_coder_scores|tojson }},
-            backgroundColor: '#4f46e5',
-            borderRadius: 6
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { x: { max: 100, beginAtZero: true } }
-        }
-      });
+      if (coderLabels && coderLabels.length > 0) {
+        new Chart(ctxTop, {
+          type: 'bar',
+          data: {
+            labels: coderLabels,
+            datasets: [{
+              label: 'Total Score',
+              data: coderScores,
+              backgroundColor: '#4f46e5',
+              hoverBackgroundColor: '#4338ca',
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    return ` Score: ${ctx.raw} / 100`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                max: 100,
+                beginAtZero: true,
+                grid: { color: gridLineColor },
+                ticks: { stepSize: 20 }
+              },
+              y: {
+                grid: { display: false },
+                ticks: { font: { size: 11 } }
+              }
+            }
+          }
+        });
+      }
     }
 
-    // 4. Department Comparison Bar
+    // 4. Department Performance Comparison Bar Chart
     const ctxDept = document.getElementById('departmentChart');
     if (ctxDept) {
-      new Chart(ctxDept, {
-        type: 'bar',
-        data: {
-          labels: {{ dept_labels|tojson }},
-          datasets: [{
-            label: 'Average Score',
-            data: {{ dept_avgs|tojson }},
-            backgroundColor: '#0ea5e9',
-            borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { max: 100, beginAtZero: true } }
+      if (deptLabels && deptLabels.length > 0) {
+        new Chart(ctxDept, {
+          type: 'bar',
+          data: {
+            labels: deptLabels,
+            datasets: [{
+              label: 'Average Score',
+              data: deptAvgs,
+              backgroundColor: '#0ea5e9',
+              hoverBackgroundColor: '#0284c7',
+              borderRadius: 6,
+              borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    return ` Branch Avg: ${ctx.raw} / 100`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { font: { size: 11 } }
+              },
+              y: {
+                max: 100,
+                beginAtZero: true,
+                grid: { color: gridLineColor },
+                ticks: { stepSize: 20 }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // 5. Academic CGPA vs Coding Score Correlation Scatter Chart
+    const ctxScatter = document.getElementById('scatterCorrelationChart');
+    if (ctxScatter) {
+      if (rawScatterPoints && rawScatterPoints.length > 0) {
+        new Chart(ctxScatter, {
+          type: 'scatter',
+          data: {
+            datasets: [{
+              label: 'Candidates',
+              data: rawScatterPoints,
+              backgroundColor: 'rgba(99, 102, 241, 0.75)',
+              borderColor: '#4f46e5',
+              borderWidth: 1.5,
+              pointRadius: 6,
+              pointHoverRadius: 9
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const pt = context.raw;
+                    return ` ${pt.name || 'Candidate'} — CGPA: ${pt.x} | Score: ${pt.y}/100`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                title: { display: true, text: 'Academic CGPA (Scale of 10.0)', font: { size: 12, weight: 'bold' } },
+                min: 0,
+                max: 10,
+                grid: { color: gridLineColor }
+              },
+              y: {
+                title: { display: true, text: 'Evaluated Total Score (Scale of 100)', font: { size: 12, weight: 'bold' } },
+                min: 0,
+                max: 100,
+                grid: { color: gridLineColor }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // 6. Real-time Search Filter for Cohort Roster Table
+    const rosterSearchInput = document.getElementById('rosterSearchInput');
+    const cohortRosterTable = document.getElementById('cohortRosterTable');
+    const rosterCountBadge = document.getElementById('rosterCountBadge');
+
+    if (rosterSearchInput && cohortRosterTable) {
+      rosterSearchInput.addEventListener('input', function () {
+        const query = this.value.trim().toLowerCase();
+        const rows = cohortRosterTable.querySelectorAll('tbody tr');
+        let visibleCount = 0;
+
+        rows.forEach(function (row) {
+          const text = row.textContent.toLowerCase();
+          if (text.includes(query)) {
+            row.style.display = '';
+            visibleCount++;
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        if (rosterCountBadge) {
+          rosterCountBadge.textContent = query ? `${visibleCount} Matched` : `${rows.length} Total`;
         }
       });
     }

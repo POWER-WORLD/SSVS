@@ -6,6 +6,7 @@ from app.models.user import Teacher
 from app.models.form import Form, FormField, FieldOption
 from app.models.submission import Submission
 from app.models.scoring import ScoreFormula, FormulaRule
+from app.models.platform_profile import PlatformProfile
 from app.extractors.base import BaseExtractor
 from app.extractors.mock_simulator import MockSimulator
 from app.scoring_engine.formula_evaluator import FormulaEvaluator
@@ -251,6 +252,21 @@ class SSVSTestCase(unittest.TestCase):
         # Row 4 and Row 5 are the 2 data rows
         # Check that only 2 data rows exist
         self.assertEqual(ws.max_row, 5)
+
+        # Also test exporting all candidates with coding and academic columns
+        stream_all = ExcelExporter.generate_custom_export(
+            form=form,
+            submission_ids=None,
+            column_keys=['rank', 'student_name', 'leetcode_solved', 'total_score']
+        )
+        self.assertIsNotNone(stream_all)
+        wb_all = openpyxl.load_workbook(stream_all)
+        ws_all = wb_all.active
+        self.assertEqual(ws_all.title, "Custom Export")
+        header_all = [ws_all.cell(row=3, column=c).value for c in range(1, 5)]
+        self.assertEqual(header_all, ["Rank", "Student Name", "LeetCode Solved", "Total Score (100)"])
+        # s1, s2, s3 = 3 data rows -> max_row = 6
+        self.assertEqual(ws_all.max_row, 6)
 
     def test_teacher_edit_submission_and_manual_adjustment(self):
         """Verify teacher editing student data and manual score adjustments."""
@@ -899,7 +915,203 @@ class SSVSTestCase(unittest.TestCase):
         login_links = re.findall(r'href="[^"]*auth/login[^"]*"', html)
         self.assertEqual(len(login_links), 1, f"Expected strictly 1 login link on landing page, found {len(login_links)}: {login_links}")
 
+    def test_formula_engine_bonuses_no_double_counting(self):
+        """Verify excellence bonuses are awarded accurately without double-counting."""
+        form = Form(teacher_id=self.teacher.id, title='Bonus Test Form', slug='bonus-test-slug', is_published=True)
+        db.session.add(form)
+        db.session.flush()
+
+        formula = ScoreFormula(form_id=form.id, name='Bonus Formula', max_total_marks=100.0, is_active=True)
+        db.session.add(formula)
+        db.session.flush()
+
+        # Rule: max 20 marks for 200 solved, bonus +5 marks for 300+ solved
+        db.session.add(FormulaRule(
+            formula_id=formula.id,
+            metric_key='leetcode_solved',
+            display_label='LeetCode Solved',
+            weight_percentage=20.0,
+            max_marks=20.0,
+            multiplier=20.0 / 200.0,
+            bonus_threshold=300.0,
+            bonus_marks=5.0,
+            category='coding'
+        ))
+        db.session.commit()
+
+        sub = Submission(form_id=form.id, student_name='Bonus Student', roll_number='B01', email='b@test.edu', cgpa=0.0)
+        db.session.add(sub)
+        db.session.flush()
+        profile = PlatformProfile(submission_id=sub.id, platform_name='leetcode', username='coder', problems_solved=350)
+        db.session.add(profile)
+        db.session.commit()
+
+        calc = FormulaEvaluator.evaluate_submission(sub, formula)
+        # Earned is capped at max_marks 20.0. Bonus is 5.0. Total must be exactly 25.0, NOT 30.0!
+        self.assertEqual(calc.coding_score, 20.0)
+        self.assertEqual(calc.bonus_awarded, 5.0)
+        self.assertEqual(calc.total_score, 25.0)
+
+    def test_formula_engine_negative_input_defense(self):
+        """Verify negative backlogs cannot exploit penalties to gain unearned marks."""
+        form = Form(teacher_id=self.teacher.id, title='Negative Defense Form', slug='neg-defense-slug', is_published=True)
+        db.session.add(form)
+        db.session.flush()
+
+        formula = ScoreFormula(form_id=form.id, name='Defense Formula', max_total_marks=100.0, is_active=True)
+        db.session.add(formula)
+        db.session.flush()
+
+        db.session.add(FormulaRule(
+            formula_id=formula.id,
+            metric_key='cgpa',
+            display_label='CGPA',
+            weight_percentage=50.0,
+            max_marks=50.0,
+            multiplier=5.0,
+            category='academic'
+        ))
+        db.session.add(FormulaRule(
+            formula_id=formula.id,
+            metric_key='backlogs_penalty',
+            display_label='Backlog Penalty',
+            penalty_per_unit=10.0,
+            category='penalty'
+        ))
+        db.session.commit()
+
+        # Student with negative backlogs
+        sub = Submission(form_id=form.id, student_name='Hacker Student', roll_number='H01', email='h@test.edu', cgpa=8.0, backlogs=-3)
+        db.session.add(sub)
+        db.session.commit()
+
+        calc = FormulaEvaluator.evaluate_submission(sub, formula)
+        # Academic: 8.0 * 5.0 = 40.0. Penalty must be 0.0, not -30.0! Total must be 40.0, not 70.0!
+        self.assertEqual(calc.penalty_deductions, 0.0)
+        self.assertEqual(calc.total_score, 40.0)
+
+    def test_formula_engine_scale_independent_grading(self):
+        """Verify percentage-based letter grading scales accurately for non-100 max scales."""
+        form = Form(teacher_id=self.teacher.id, title='Scale 50 Form', slug='scale-50-slug', is_published=True)
+        db.session.add(form)
+        db.session.flush()
+
+        # Scale of 50.0 max marks
+        formula = ScoreFormula(form_id=form.id, name='Scale 50 Formula', max_total_marks=50.0, is_active=True)
+        db.session.add(formula)
+        db.session.flush()
+
+        db.session.add(FormulaRule(
+            formula_id=formula.id,
+            metric_key='cgpa',
+            display_label='CGPA',
+            weight_percentage=100.0,
+            max_marks=50.0,
+            multiplier=5.0,
+            category='academic'
+        ))
+        db.session.commit()
+
+        # Student with 9.0 CGPA -> 9.0 * 5.0 = 45.0 marks out of 50.0 (90%) -> Grade must be 'A+'
+        sub = Submission(form_id=form.id, student_name='Scale Student', roll_number='S01', email='s@test.edu', cgpa=9.0)
+        db.session.add(sub)
+        db.session.commit()
+
+        calc = FormulaEvaluator.evaluate_submission(sub, formula)
+        self.assertEqual(calc.total_score, 45.0)
+        self.assertEqual(calc.grade, 'A+')
+
+    def test_formula_engine_custom_form_fields(self):
+        """Verify custom dynamic form field values can be scored as metrics."""
+        from app.models.form import FormField
+        from app.models.submission import SubmissionValue
+
+        form = Form(teacher_id=self.teacher.id, title='Custom Field Form', slug='custom-field-slug', is_published=True)
+        db.session.add(form)
+        db.session.flush()
+
+        field = FormField(form_id=form.id, field_key='hackathons_won', label='Hackathons Won', field_type='number')
+        db.session.add(field)
+        db.session.flush()
+
+        formula = ScoreFormula(form_id=form.id, name='Custom Field Formula', max_total_marks=100.0, is_active=True)
+        db.session.add(formula)
+        db.session.flush()
+
+        db.session.add(FormulaRule(
+            formula_id=formula.id,
+            metric_key='hackathons_won',
+            display_label='Hackathons Won',
+            weight_percentage=50.0,
+            max_marks=50.0,
+            multiplier=10.0, # 5 hackathons * 10 = 50 marks
+            category='custom'
+        ))
+        db.session.commit()
+
+        sub = Submission(form_id=form.id, student_name='Hacker Pro', roll_number='HP01', email='hp@test.edu', cgpa=0.0)
+        db.session.add(sub)
+        db.session.flush()
+
+        sub_val = SubmissionValue(submission_id=sub.id, field_id=field.id, value_text='3')
+        db.session.add(sub_val)
+        db.session.commit()
+
+        calc = FormulaEvaluator.evaluate_submission(sub, formula)
+        # 3 hackathons * 10.0 = 30.0 marks
+        self.assertEqual(calc.total_score, 30.0)
+
+    def test_formula_engine_cohort_normalizations(self):
+        """Verify cohort-level normalization methods: cohort_min_max, z_score, percentile."""
+        from app.models.scoring import LeaderboardEntry
+
+        form = Form(teacher_id=self.teacher.id, title='Cohort Normalization Form', slug='norm-cohort-slug', is_published=True)
+        db.session.add(form)
+        db.session.flush()
+
+        # Create formula with cohort_min_max
+        formula = ScoreFormula(form_id=form.id, name='MinMax Cohort', normalization_method='cohort_min_max', max_total_marks=100.0, is_active=True)
+        db.session.add(formula)
+        db.session.flush()
+
+        db.session.add(FormulaRule(
+            formula_id=formula.id,
+            metric_key='cgpa',
+            display_label='CGPA',
+            weight_percentage=100.0,
+            max_marks=100.0,
+            multiplier=10.0,
+            category='academic'
+        ))
+        db.session.commit()
+
+        # Candidate 1: CGPA 5.0 (raw 50)
+        # Candidate 2: CGPA 10.0 (raw 100)
+        sub1 = Submission(form_id=form.id, student_name='Lower Cand', roll_number='LC01', email='lc@test.edu', cgpa=5.0)
+        sub2 = Submission(form_id=form.id, student_name='Upper Cand', roll_number='UC01', email='uc@test.edu', cgpa=10.0)
+        db.session.add_all([sub1, sub2])
+        db.session.commit()
+
+        # Update leaderboard using cohort_min_max
+        FormulaEvaluator.update_form_ranks_and_leaderboard(form.id)
+
+        entries = LeaderboardEntry.query.filter_by(form_id=form.id).order_by(LeaderboardEntry.rank.asc()).all()
+        self.assertEqual(len(entries), 2)
+        # In cohort_min_max: min score (50) is scaled to 0.0, max score (100) is scaled to 100.0
+        self.assertEqual(entries[0].total_score, 100.0)
+        self.assertEqual(entries[1].total_score, 0.0)
+
+        # Now switch to percentile normalization
+        formula.normalization_method = 'percentile'
+        db.session.commit()
+        FormulaEvaluator.update_form_ranks_and_leaderboard(form.id)
+
+        entries_pct = LeaderboardEntry.query.filter_by(form_id=form.id).order_by(LeaderboardEntry.rank.asc()).all()
+        # Top student percentile is 75.0 (out of 2 students), scaled to 75.0 marks
+        self.assertEqual(entries_pct[0].total_score, 75.0)
+
 if __name__ == '__main__':
     unittest.main()
+
 
 

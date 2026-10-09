@@ -6,27 +6,27 @@
 <div class="container py-4">
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
     <div class="d-flex align-items-center gap-3">
-      <a href="{{ url_for('forms_mgr.list_forms') }}" class="btn btn-sm btn-outline-secondary">
+      <a href="{{ url_for('forms_mgr.list_forms') }}" class="btn btn-sm btn-outline-secondary rounded-2">
         <i class="bi bi-arrow-left"></i>
       </a>
       <div>
         <h3 class="fw-bold mb-0">Intelligent Score Formula Engine</h3>
-        <div class="small text-muted">{{ form.title }} &bull; Visual Weightage & Penalty Customizer</div>
+        <div class="small text-muted">{{ form.title }} &bull; Enterprise Metric Weightage, Benchmarks & Penalty Customizer</div>
       </div>
     </div>
     <div class="d-flex gap-2">
       <div class="dropdown">
-        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-          <i class="bi bi-magic me-1"></i> Apply Formula Preset
+        <button class="btn btn-outline-primary btn-sm dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
+          <i class="bi bi-magic me-1"></i> Apply Domain Preset
         </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+        <ul class="dropdown-menu dropdown-menu-end shadow">
           {% for p_key, preset in presets.items() %}
           <li>
             <form method="POST" action="{{ url_for('forms_mgr.apply_preset', form_id=form.id, preset_name=p_key) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="dropdown-item small py-2">
-                <div class="fw-bold">{{ preset.name }}</div>
-                <div class="small text-muted text-truncate" style="max-width: 250px;">{{ preset.description }}</div>
+              <button type="submit" class="dropdown-item py-2">
+                <div class="fw-bold text-primary">{{ preset.name }}</div>
+                <div class="small text-muted text-truncate" style="max-width: 280px;">{{ preset.description }}</div>
               </button>
             </form>
           </li>
@@ -40,113 +40,223 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     <div class="row g-4">
-      <!-- Left: Formula Configuration -->
+      <!-- Left Column: Formula Engine & Dynamic Rules -->
       <div class="col-lg-8">
-        <div class="card card-modern p-4 mb-4">
-          <h5 class="fw-bold mb-3"><i class="bi bi-sliders text-primary me-2"></i> Scoring Engine Parameters</h5>
+        <!-- Global Engine Parameters Card -->
+        <div class="card card-modern p-4 mb-4 shadow-sm">
+          <h5 class="fw-bold mb-3 d-flex align-items-center">
+            <i class="bi bi-sliders text-primary me-2"></i> Scoring Engine Parameters
+          </h5>
           
-          <div class="row g-3 mb-4">
+          <div class="row g-3 mb-2">
             <div class="col-md-6">
-              <label class="form-label small fw-bold">Formula Scheme Name</label>
-              <input type="text" name="name" class="form-control form-control-modern" value="{{ formula.name if formula else 'Campus Placement Formula' }}">
+              <label class="form-label small fw-bold">Formula Scheme Title</label>
+              <input type="text" name="name" class="form-control form-control-modern" value="{{ formula.name if formula else 'Campus Placement Formula' }}" required>
             </div>
             <div class="col-md-3">
-              <label class="form-label small fw-bold">Max Scale Marks</label>
-              <input type="number" name="max_total_marks" class="form-control form-control-modern" value="{{ formula.max_total_marks if formula else 100.0 }}" step="1">
+              <label class="form-label small fw-bold">Maximum Score Scale</label>
+              <input type="number" name="max_total_marks" id="formula_max_total" class="form-control form-control-modern" value="{{ formula.max_total_marks if formula else 100.0 }}" step="1" min="10" required>
             </div>
             <div class="col-md-3">
-              <label class="form-label small fw-bold">Normalization Engine</label>
+              <label class="form-label small fw-bold">Cohort Normalization</label>
               <select name="normalization_method" class="form-select form-select-modern">
-                <option value="min_max" {{ 'selected' if formula and formula.normalization_method == 'min_max' else '' }}>Min-Max (0-100)</option>
+                <option value="min_max" {{ 'selected' if formula and formula.normalization_method == 'min_max' else '' }}>Min-Max (Rule Clamped)</option>
+                <option value="cohort_min_max" {{ 'selected' if formula and formula.normalization_method == 'cohort_min_max' else '' }}>Cohort Dynamic Min-Max</option>
                 <option value="percentile" {{ 'selected' if formula and formula.normalization_method == 'percentile' else '' }}>Percentile Scaled</option>
-                <option value="z_score" {{ 'selected' if formula and formula.normalization_method == 'z_score' else '' }}>Z-Score Normalized</option>
+                <option value="z_score" {{ 'selected' if formula and formula.normalization_method == 'z_score' else '' }}>Gaussian Z-Score</option>
                 <option value="weighted_sum" {{ 'selected' if formula and formula.normalization_method == 'weighted_sum' else '' }}>Direct Weighted Sum</option>
               </select>
             </div>
           </div>
+        </div>
 
-          <h6 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
-            <span><i class="bi bi-list-check text-primary me-2"></i> Metric Evaluation Rules</span>
+        <!-- Evaluation Rules Card -->
+        <div class="card card-modern p-4 mb-4 shadow-sm">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0 d-flex align-items-center">
+              <i class="bi bi-list-check text-primary me-2"></i> Metric Evaluation Rules
+            </h5>
             <button type="button" class="btn btn-sm btn-outline-primary" id="add-rule-btn">
-              <i class="bi bi-plus-lg me-1"></i> Add Custom Metric
+              <i class="bi bi-plus-lg me-1"></i> Add Custom Metric Rule
             </button>
-          </h6>
+          </div>
 
           <div id="rules-container">
             {% for r in rules %}
-            <div class="card bg-body-tertiary border p-3 mb-3 rule-card rounded-3">
-              <div class="row g-2 align-items-center">
-                <div class="col-md-3">
-                  <label class="form-label small text-muted mb-1">Metric Key</label>
-                  <select name="rule_metric_key" class="form-select form-select-sm">
-                    <option value="cgpa" {{ 'selected' if r.metric_key == 'cgpa' else '' }}>Academic CGPA</option>
-                    <option value="leetcode_solved" {{ 'selected' if r.metric_key == 'leetcode_solved' else '' }}>LeetCode Solved</option>
-                    <option value="leetcode_rating" {{ 'selected' if r.metric_key == 'leetcode_rating' else '' }}>LeetCode Rating</option>
-                    <option value="codechef_rating" {{ 'selected' if r.metric_key == 'codechef_rating' else '' }}>CodeChef Rating</option>
-                    <option value="codeforces_rating" {{ 'selected' if r.metric_key == 'codeforces_rating' else '' }}>Codeforces Rating</option>
-                    <option value="github_stars_repos" {{ 'selected' if r.metric_key == 'github_stars_repos' else '' }}>GitHub Repos & Stars</option>
-                    <option value="hackerrank_badges" {{ 'selected' if r.metric_key == 'hackerrank_badges' else '' }}>HackerRank Badges</option>
-                    <option value="gfg_score" {{ 'selected' if r.metric_key == 'gfg_score' else '' }}>GeeksforGeeks Score</option>
-                    <option value="atcoder_rating" {{ 'selected' if r.metric_key == 'atcoder_rating' else '' }}>AtCoder Rating</option>
-                    <option value="interviewbit_score" {{ 'selected' if r.metric_key == 'interviewbit_score' else '' }}>InterviewBit Score</option>
-                    <option value="kaggle_medals" {{ 'selected' if r.metric_key == 'kaggle_medals' else '' }}>Kaggle Medals</option>
-                    <option value="backlogs_penalty" {{ 'selected' if r.metric_key == 'backlogs_penalty' else '' }}>Backlog Penalty</option>
+            <div class="card bg-body-tertiary border p-3 mb-3 rule-card rounded-3 shadow-none">
+              <div class="row g-2 align-items-center mb-2">
+                <!-- Metric Key Selection -->
+                <div class="col-md-4">
+                  <label class="form-label small text-muted mb-1">Metric Source</label>
+                  <select name="rule_metric_key" class="form-select form-select-sm metric-select">
+                    <optgroup label="Academic & Administrative">
+                      <option value="cgpa" {{ 'selected' if r.metric_key == 'cgpa' else '' }}>Academic CGPA (0-10)</option>
+                      <option value="backlogs_penalty" {{ 'selected' if r.metric_key == 'backlogs_penalty' else '' }}>Backlog Deduction (Penalty)</option>
+                    </optgroup>
+                    <optgroup label="LeetCode">
+                      <option value="leetcode_solved" {{ 'selected' if r.metric_key == 'leetcode_solved' else '' }}>LeetCode Problems Solved</option>
+                      <option value="leetcode_rating" {{ 'selected' if r.metric_key == 'leetcode_rating' else '' }}>LeetCode Contest Rating</option>
+                      <option value="leetcode_hard" {{ 'selected' if r.metric_key == 'leetcode_hard' else '' }}>LeetCode Hard Solved</option>
+                    </optgroup>
+                    <optgroup label="CodeChef & Codeforces">
+                      <option value="codechef_rating" {{ 'selected' if r.metric_key == 'codechef_rating' else '' }}>CodeChef Contest Rating</option>
+                      <option value="codechef_stars" {{ 'selected' if r.metric_key == 'codechef_stars' else '' }}>CodeChef Stars (1-7)</option>
+                      <option value="codeforces_rating" {{ 'selected' if r.metric_key == 'codeforces_rating' else '' }}>Codeforces Contest Rating</option>
+                    </optgroup>
+                    <optgroup label="Open Source & GitHub">
+                      <option value="github_stars_repos" {{ 'selected' if r.metric_key == 'github_stars_repos' else '' }}>GitHub Repos & Stars Index</option>
+                      <option value="github_repos" {{ 'selected' if r.metric_key == 'github_repos' else '' }}>GitHub Public Repositories</option>
+                      <option value="github_stars" {{ 'selected' if r.metric_key == 'github_stars' else '' }}>GitHub Stars Earned</option>
+                      <option value="github_contributions" {{ 'selected' if r.metric_key == 'github_contributions' else '' }}>GitHub Annual Contributions</option>
+                    </optgroup>
+                    <optgroup label="Competitive Platforms">
+                      <option value="hackerrank_badges" {{ 'selected' if r.metric_key == 'hackerrank_badges' else '' }}>HackerRank Badges Earned</option>
+                      <option value="gfg_problems" {{ 'selected' if r.metric_key == 'gfg_problems' else '' }}>GeeksforGeeks Problems Solved</option>
+                      <option value="gfg_score" {{ 'selected' if r.metric_key == 'gfg_score' else '' }}>GeeksforGeeks Coding Score</option>
+                      <option value="atcoder_rating" {{ 'selected' if r.metric_key == 'atcoder_rating' else '' }}>AtCoder Contest Rating</option>
+                      <option value="interviewbit_score" {{ 'selected' if r.metric_key == 'interviewbit_score' else '' }}>InterviewBit Practice Score</option>
+                      <option value="kaggle_medals" {{ 'selected' if r.metric_key == 'kaggle_medals' else '' }}>Kaggle Medals Count</option>
+                    </optgroup>
+                    {% if custom_fields %}
+                    <optgroup label="Custom Form Fields">
+                      {% for f in custom_fields %}
+                      <option value="{{ f.field_key }}" {{ 'selected' if r.metric_key == f.field_key else '' }}>{{ f.label }}</option>
+                      {% endfor %}
+                    </optgroup>
+                    {% endif %}
                   </select>
                 </div>
+
+                <!-- Display Label -->
                 <div class="col-md-3">
                   <label class="form-label small text-muted mb-1">Display Label</label>
-                  <input type="text" name="rule_display_label" class="form-control form-control-sm" value="{{ r.display_label }}">
+                  <input type="text" name="rule_display_label" class="form-control form-control-sm" value="{{ r.display_label }}" required>
                 </div>
+
+                <!-- Category -->
+                <div class="col-md-2">
+                  <label class="form-label small text-muted mb-1">Category</label>
+                  <select name="rule_category" class="form-select form-select-sm">
+                    <option value="coding" {{ 'selected' if r.category == 'coding' else '' }}>Coding</option>
+                    <option value="academic" {{ 'selected' if r.category == 'academic' else '' }}>Academic</option>
+                    <option value="github" {{ 'selected' if r.category == 'github' else '' }}>GitHub</option>
+                    <option value="penalty" {{ 'selected' if r.category == 'penalty' else '' }}>Penalty</option>
+                    <option value="custom" {{ 'selected' if r.category == 'custom' else '' }}>Custom</option>
+                  </select>
+                </div>
+
+                <!-- Weight (%) -->
                 <div class="col-md-2">
                   <label class="form-label small text-muted mb-1">Weight (%)</label>
-                  <input type="number" name="rule_weight" class="form-control form-control-sm" value="{{ r.weight_percentage }}" step="1">
+                  <input type="number" name="rule_weight" class="form-control form-control-sm rule-weight" value="{{ r.weight_percentage }}" step="1" min="0">
                 </div>
-                <div class="col-md-2">
-                  <label class="form-label small text-muted mb-1">Max Marks</label>
-                  <input type="number" name="rule_max_marks" class="form-control form-control-sm" value="{{ r.max_marks }}" step="1">
-                </div>
-                <div class="col-md-1">
-                  <label class="form-label small text-muted mb-1">Penalty</label>
-                  <input type="number" name="rule_penalty" class="form-control form-control-sm text-danger" value="{{ r.penalty_per_unit or 0 }}" step="1" title="Deduction per unit">
-                </div>
+
+                <!-- Delete Action -->
                 <div class="col-md-1 text-end">
                   <label class="form-label small text-muted mb-1 d-block">&nbsp;</label>
-                  <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.rule-card').remove()">
+                  <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.rule-card').remove(); updateLiveTally();">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
-                <input type="hidden" name="rule_category" value="{{ r.category }}">
+              </div>
+
+              <!-- Secondary Row: Benchmarks, Multipliers, Penalties, Bonuses -->
+              <div class="row g-2 align-items-center pt-2 border-top border-secondary-subtle">
+                <div class="col-md-2">
+                  <label class="form-label small text-muted mb-1">Max Marks</label>
+                  <input type="number" name="rule_max_marks" class="form-control form-control-sm rule-max-marks" value="{{ r.max_marks }}" step="0.5" min="0">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small text-muted mb-1" title="Benchmark value to achieve 100% max marks">Benchmark Target</label>
+                  {% set b_val = (r.max_marks / r.multiplier) if (r.multiplier and r.multiplier > 0 and r.category != 'penalty') else (default_benchmarks.get(r.metric_key, 100.0)) %}
+                  <input type="number" name="rule_benchmark" class="form-control form-control-sm" value="{{ b_val | round(1) }}" step="any" placeholder="Auto">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small text-muted mb-1" title="Explicit score multiplier override">Multiplier</label>
+                  <input type="number" name="rule_multiplier" class="form-control form-control-sm text-secondary" value="{{ r.multiplier | round(4) if r.multiplier else '' }}" step="any" placeholder="Auto">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small text-muted mb-1 text-danger" title="Deduction per unit backlog or infraction">Penalty / Unit</label>
+                  <input type="number" name="rule_penalty" class="form-control form-control-sm text-danger" value="{{ r.penalty_per_unit or 0 }}" step="0.5" min="0">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small text-muted mb-1 text-success" title="Value threshold required to trigger excellence bonus">Bonus Threshold</label>
+                  <input type="number" name="rule_bonus_threshold" class="form-control form-control-sm" value="{{ r.bonus_threshold or 0 }}" step="any" placeholder="e.g. 500">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label small text-muted mb-1 text-success" title="Additional marks awarded for reaching bonus threshold">Bonus Marks</label>
+                  <input type="number" name="rule_bonus_marks" class="form-control form-control-sm" value="{{ r.bonus_marks or 0 }}" step="0.5" placeholder="e.g. 3.0">
+                </div>
               </div>
             </div>
             {% endfor %}
           </div>
 
-          <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
-            <span class="small text-muted"><i class="bi bi-info-circle me-1"></i> Saving will automatically recalculate rankings for all existing submissions.</span>
-            <button type="submit" class="btn btn-primary-gradient px-4">
+          <div class="mt-4 pt-3 border-top d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="small text-muted">
+              <i class="bi bi-info-circle me-1 text-primary"></i> Saving formula will re-score every candidate and update cohort leaderboard cache immediately.
+            </div>
+            <button type="submit" class="btn btn-primary-gradient px-4 py-2 fw-semibold shadow-sm">
               <i class="bi bi-calculator me-1"></i> Save Formula & Recalculate Ranks
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Right: Formula Info & Explanation -->
+      <!-- Right Column: Live Formula Health & Knowledge Card -->
       <div class="col-lg-4">
-        <div class="card card-modern p-4 mb-4">
-          <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb-fill text-warning me-2"></i> How Scoring Works</h6>
-          <p class="small text-secondary mb-3">
-            SSVS combines extracted competitive coding statistics, repository metrics, and academic CGPA into a single objective score on a 100-point scale.
-          </p>
-          <div class="p-3 bg-body-tertiary rounded small mb-3">
-            <div class="fw-bold mb-1">Active Backlog Penalties:</div>
-            <div class="text-secondary">If configured, each active backlog deducts the specified marks from the student's subtotal before normalization.</div>
+        <!-- Live Formula Health & Summary Card -->
+        <div class="card card-modern p-4 mb-4 shadow-sm border-primary-subtle">
+          <h6 class="fw-bold mb-3 d-flex align-items-center">
+            <i class="bi bi-speedometer2 text-primary me-2"></i> Formula Balance Tally
+          </h6>
+          <div class="row g-2 text-center mb-3">
+            <div class="col-6">
+              <div class="p-3 bg-body-tertiary rounded-3 border">
+                <div class="small text-muted mb-1">Total Max Marks</div>
+                <div class="fs-4 fw-extrabold text-primary" id="tally-marks">0.0</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="p-3 bg-body-tertiary rounded-3 border">
+                <div class="small text-muted mb-1">Total Weightage</div>
+                <div class="fs-4 fw-extrabold text-success" id="tally-weight">0%</div>
+              </div>
+            </div>
           </div>
-          <div class="p-3 bg-body-tertiary rounded small mb-3">
-            <div class="fw-bold mb-1">Competitive Benchmarks:</div>
-            <div class="text-secondary">LeetCode 300+ solved & 1800+ rating, CodeChef 1700+ rating, and GitHub activity are evaluated against university placement standards.</div>
+          <div id="tally-alert" class="alert alert-info py-2 px-3 small mb-0 rounded-2">
+            <i class="bi bi-check-circle me-1"></i> Formula rule tallies are aligned.
+          </div>
+        </div>
+
+        <!-- How Scoring Engine Computes Card -->
+        <div class="card card-modern p-4 mb-4 shadow-sm">
+          <h6 class="fw-bold mb-3 d-flex align-items-center">
+            <i class="bi bi-lightbulb-fill text-warning me-2"></i> How Scoring Works
+          </h6>
+          <p class="small text-secondary mb-3">
+            SSVS unifies algorithmic coding statistics, version control metrics, and university CGPA into a normalized multi-dimensional score.
+          </p>
+          <div class="p-3 bg-body-tertiary rounded small mb-3 border">
+            <div class="fw-bold mb-1"><i class="bi bi-graph-up text-primary me-1"></i> Benchmarking:</div>
+            <div class="text-secondary">
+              Achieving a benchmark target (e.g. 300 LeetCode problems or 1800 rating) grants 100% of the metric's allocated max marks.
+            </div>
+          </div>
+          <div class="p-3 bg-body-tertiary rounded small mb-3 border">
+            <div class="fw-bold mb-1"><i class="bi bi-exclamation-octagon text-danger me-1"></i> Negative Backlog Safeguard:</div>
+            <div class="text-secondary">
+              Active backlogs deduct penalty points directly from candidate subtotals before scaling, preventing unfair advantages.
+            </div>
+          </div>
+          <div class="p-3 bg-body-tertiary rounded small mb-3 border">
+            <div class="fw-bold mb-1"><i class="bi bi-award text-success me-1"></i> Excellence Bonuses:</div>
+            <div class="text-secondary">
+              Surpassing bonus thresholds grants bonus points awarded transparently without double-counting.
+            </div>
           </div>
           <a href="{{ url_for('forms_mgr.submissions', form_id=form.id) }}" class="btn btn-sm btn-outline-secondary w-100">
-            <i class="bi bi-people me-1"></i> View Cohort Submissions
+            <i class="bi bi-people me-1"></i> Inspect Cohort Submissions
           </a>
         </div>
       </div>
@@ -157,55 +267,131 @@
 
 {% block extra_js %}
 <script>
-  document.getElementById('add-rule-btn')?.addEventListener('click', function() {
-    const container = document.getElementById('rules-container');
-    const template = `
-      <div class="card bg-body-tertiary border p-3 mb-3 rule-card rounded-3">
-        <div class="row g-2 align-items-center">
-          <div class="col-md-3">
-            <label class="form-label small text-muted mb-1">Metric Key</label>
-            <select name="rule_metric_key" class="form-select form-select-sm">
-              <option value="leetcode_solved">LeetCode Solved</option>
-              <option value="leetcode_rating">LeetCode Rating</option>
-              <option value="codechef_rating">CodeChef Rating</option>
-              <option value="codeforces_rating">Codeforces Rating</option>
-              <option value="github_stars_repos">GitHub Repos & Stars</option>
-              <option value="hackerrank_badges">HackerRank Badges</option>
-              <option value="gfg_score">GeeksforGeeks Score</option>
-              <option value="atcoder_rating">AtCoder Rating</option>
-              <option value="interviewbit_score">InterviewBit Score</option>
-              <option value="kaggle_medals">Kaggle Medals</option>
-              <option value="cgpa">Academic CGPA</option>
-              <option value="backlogs_penalty">Backlog Penalty</option>
-            </select>
+  function updateLiveTally() {
+    let totalMarks = 0;
+    let totalWeight = 0;
+
+    document.querySelectorAll('.rule-max-marks').forEach(function(input) {
+      const card = input.closest('.rule-card');
+      const catSelect = card ? card.querySelector('select[name="rule_category"]') : null;
+      if (catSelect && catSelect.value === 'penalty') return;
+      totalMarks += parseFloat(input.value || 0);
+    });
+
+    document.querySelectorAll('.rule-weight').forEach(function(input) {
+      totalWeight += parseFloat(input.value || 0);
+    });
+
+    const targetMax = parseFloat(document.getElementById('formula_max_total')?.value || 100);
+
+    const marksEl = document.getElementById('tally-marks');
+    const weightEl = document.getElementById('tally-weight');
+    const alertEl = document.getElementById('tally-alert');
+
+    if (marksEl) marksEl.textContent = totalMarks.toFixed(1);
+    if (weightEl) weightEl.textContent = totalWeight.toFixed(0) + '%';
+
+    if (alertEl) {
+      if (Math.abs(totalMarks - targetMax) > 1.0) {
+        alertEl.className = 'alert alert-warning py-2 px-3 small mb-0 rounded-2';
+        alertEl.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> Sum of max marks (${totalMarks.toFixed(1)}) differs from Scale (${targetMax}).`;
+      } else if (Math.abs(totalWeight - 100) > 1.0) {
+        alertEl.className = 'alert alert-warning py-2 px-3 small mb-0 rounded-2';
+        alertEl.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> Weights sum to ${totalWeight.toFixed(0)}% (100% recommended).`;
+      } else {
+        alertEl.className = 'alert alert-success py-2 px-3 small mb-0 rounded-2';
+        alertEl.innerHTML = `<i class="bi bi-check-circle me-1"></i> Formula is balanced and sums to ${targetMax} marks.`;
+      }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    updateLiveTally();
+
+    document.getElementById('formula-form')?.addEventListener('input', function(e) {
+      if (e.target.classList.contains('rule-max-marks') || e.target.classList.contains('rule-weight') || e.target.id === 'formula_max_total') {
+        updateLiveTally();
+      }
+    });
+
+    document.getElementById('add-rule-btn')?.addEventListener('click', function() {
+      const container = document.getElementById('rules-container');
+      const template = `
+        <div class="card bg-body-tertiary border p-3 mb-3 rule-card rounded-3 shadow-none">
+          <div class="row g-2 align-items-center mb-2">
+            <div class="col-md-4">
+              <label class="form-label small text-muted mb-1">Metric Source</label>
+              <select name="rule_metric_key" class="form-select form-select-sm metric-select">
+                <option value="leetcode_solved">LeetCode Problems Solved</option>
+                <option value="leetcode_rating">LeetCode Contest Rating</option>
+                <option value="codechef_rating">CodeChef Contest Rating</option>
+                <option value="codeforces_rating">Codeforces Contest Rating</option>
+                <option value="github_stars_repos">GitHub Repos & Stars Index</option>
+                <option value="hackerrank_badges">HackerRank Badges Earned</option>
+                <option value="gfg_score">GeeksforGeeks Coding Score</option>
+                <option value="atcoder_rating">AtCoder Contest Rating</option>
+                <option value="interviewbit_score">InterviewBit Practice Score</option>
+                <option value="kaggle_medals">Kaggle Medals Count</option>
+                <option value="cgpa">Academic CGPA (0-10)</option>
+                <option value="backlogs_penalty">Backlog Deduction (Penalty)</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-muted mb-1">Display Label</label>
+              <input type="text" name="rule_display_label" class="form-control form-control-sm" value="New Metric Rule" required>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small text-muted mb-1">Category</label>
+              <select name="rule_category" class="form-select form-select-sm">
+                <option value="coding" selected>Coding</option>
+                <option value="academic">Academic</option>
+                <option value="github">GitHub</option>
+                <option value="penalty">Penalty</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small text-muted mb-1">Weight (%)</label>
+              <input type="number" name="rule_weight" class="form-control form-control-sm rule-weight" value="10" step="1" min="0">
+            </div>
+            <div class="col-md-1 text-end">
+              <label class="form-label small text-muted mb-1 d-block">&nbsp;</label>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.rule-card').remove(); updateLiveTally();">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
           </div>
-          <div class="col-md-3">
-            <label class="form-label small text-muted mb-1">Display Label</label>
-            <input type="text" name="rule_display_label" class="form-control form-control-sm" value="New Metric">
+          <div class="row g-2 align-items-center pt-2 border-top border-secondary-subtle">
+            <div class="col-md-2">
+              <label class="form-label small text-muted mb-1">Max Marks</label>
+              <input type="number" name="rule_max_marks" class="form-control form-control-sm rule-max-marks" value="10" step="0.5" min="0">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small text-muted mb-1">Benchmark Target</label>
+              <input type="number" name="rule_benchmark" class="form-control form-control-sm" value="100" step="any" placeholder="Auto">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small text-muted mb-1">Multiplier</label>
+              <input type="number" name="rule_multiplier" class="form-control form-control-sm text-secondary" value="" step="any" placeholder="Auto">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small text-muted mb-1 text-danger">Penalty / Unit</label>
+              <input type="number" name="rule_penalty" class="form-control form-control-sm text-danger" value="0" step="0.5" min="0">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small text-muted mb-1 text-success">Bonus Threshold</label>
+              <input type="number" name="rule_bonus_threshold" class="form-control form-control-sm" value="0" step="any" placeholder="e.g. 500">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small text-muted mb-1 text-success">Bonus Marks</label>
+              <input type="number" name="rule_bonus_marks" class="form-control form-control-sm" value="0" step="0.5" placeholder="e.g. 3.0">
+            </div>
           </div>
-          <div class="col-md-2">
-            <label class="form-label small text-muted mb-1">Weight (%)</label>
-            <input type="number" name="rule_weight" class="form-control form-control-sm" value="10" step="1">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label small text-muted mb-1">Max Marks</label>
-            <input type="number" name="rule_max_marks" class="form-control form-control-sm" value="10" step="1">
-          </div>
-          <div class="col-md-1">
-            <label class="form-label small text-muted mb-1">Penalty</label>
-            <input type="number" name="rule_penalty" class="form-control form-control-sm text-danger" value="0" step="1">
-          </div>
-          <div class="col-md-1 text-end">
-            <label class="form-label small text-muted mb-1 d-block">&nbsp;</label>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.rule-card').remove()">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-          <input type="hidden" name="rule_category" value="coding">
         </div>
-      </div>
-    `;
-    container.insertAdjacentHTML('beforeend', template);
+      `;
+      container.insertAdjacentHTML('beforeend', template);
+      updateLiveTally();
+    });
   });
 </script>
 {% endblock %}

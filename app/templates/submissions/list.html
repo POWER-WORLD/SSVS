@@ -15,18 +15,18 @@
         <div class="small text-muted">{{ form.title }} &bull; {{ submissions|length }} candidates evaluated</div>
       </div>
     </div>
-    <div class="d-flex flex-wrap gap-2">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
       <!-- Custom Excel Export Trigger -->
-      <button type="button" class="btn btn-success btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#customExcelModal">
-        <i class="bi bi-file-earmark-excel"></i> Custom Excel Export
+      <button type="button" class="btn btn-success btn-sm d-inline-flex align-items-center gap-1 shadow-sm px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#customExcelModal" title="Granular Custom Excel Export with custom columns and candidate selection">
+        <i class="bi bi-file-earmark-excel-fill"></i> Custom Excel Export
       </button>
-      <a href="{{ url_for('analytics.export_excel', form_id=form.id) }}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1" title="Download Standard Multi-Sheet Excel">
+      <a href="{{ url_for('analytics.export_excel', form_id=form.id) }}" class="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-1" title="Download Standard Multi-Sheet Excel">
         <i class="bi bi-download"></i> Full Report (.xlsx)
       </a>
-      <a href="{{ url_for('student.view_leaderboard', slug=form.slug) }}" target="_blank" class="btn btn-outline-warning btn-sm d-flex align-items-center gap-1">
+      <a href="{{ url_for('student.view_leaderboard', slug=form.slug) }}" target="_blank" class="btn btn-outline-warning btn-sm d-inline-flex align-items-center gap-1">
         <i class="bi bi-trophy-fill"></i> Public Leaderboard
       </a>
-      <a href="{{ url_for('analytics.dashboard', form_id=form.id) }}" class="btn btn-primary-gradient btn-sm d-flex align-items-center gap-1">
+      <a href="{{ url_for('analytics.dashboard', form_id=form.id) }}" class="btn btn-primary-gradient btn-sm d-inline-flex align-items-center gap-1">
         <i class="bi bi-bar-chart-line"></i> Analytics Dashboard
       </a>
     </div>
@@ -276,141 +276,341 @@
 
 <!-- Custom Excel Export Modal -->
 <div class="modal fade" id="customExcelModal" tabindex="-1" aria-labelledby="customExcelModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title fw-bold" id="customExcelModalLabel">
-          <i class="bi bi-file-earmark-excel me-2"></i> Granular Custom Excel Export
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <form class="modal-content shadow-2xl border-0 overflow-hidden" method="POST" action="{{ url_for('forms_mgr.export_custom_excel', form_id=form.id) }}" id="customExportForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="selected_ids_str" id="exportSelectedIds">
+
+      <!-- Modal Header -->
+      <div class="modal-header export-modal-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-white text-success d-inline-flex align-items-center justify-content-center p-2 shadow-sm" style="width: 44px; height: 44px;">
+            <i class="bi bi-file-earmark-excel-fill fs-4"></i>
+          </div>
+          <div>
+            <h5 class="modal-title fw-bold text-white mb-0" id="customExcelModalLabel">
+              Granular Custom Excel Export
+            </h5>
+            <div class="small text-white-50">Filter candidates & customize spreadsheet columns (.xlsx)</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-white bg-opacity-25 text-white font-monospace px-3 py-2 rounded-pill d-none d-sm-inline-block" id="headerCountBadge">
+            {{ submissions|length }} Candidates Available
+          </span>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
       </div>
 
-      <form method="POST" action="{{ url_for('forms_mgr.export_custom_excel', form_id=form.id) }}" id="customExportForm">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="selected_ids_str" id="exportSelectedIds">
-
-        <div class="modal-body p-4">
-          <!-- Scope Selection: All vs Selected Rows -->
-          <div class="card bg-body-tertiary border p-3 mb-4 rounded-3">
-            <h6 class="fw-bold mb-2"><i class="bi bi-funnel me-1"></i> Row Scope (Students to Export)</h6>
-            <div class="d-flex flex-wrap gap-3">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="export_scope" id="scopeAll" value="all" checked>
-                <label class="form-check-label small fw-bold" for="scopeAll">
-                  All Evaluated Students ({{ submissions|length }})
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="export_scope" id="scopeSelected" value="selected">
-                <label class="form-check-label small fw-bold" for="scopeSelected" id="scopeSelectedLabel">
-                  Only Checked Students (0 selected)
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Column Selection with Quick Toggles -->
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold mb-0"><i class="bi bi-layout-three-columns me-1"></i> Select Columns to Include in Spreadsheet</h6>
-            <div class="btn-group btn-group-sm">
-              <button type="button" class="btn btn-outline-secondary" onclick="toggleAllColumns(true)">Select All</button>
-              <button type="button" class="btn btn-outline-secondary" onclick="toggleAllColumns(false)">Clear All</button>
-            </div>
+      <!-- Modal Body (Scrollable with max-height and custom styling) -->
+      <div class="modal-body p-4 bg-body" style="overflow-y: auto;">
+        <!-- Row Scope (Students to Export) -->
+        <div class="mb-4">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <label class="fw-bold small text-uppercase text-secondary tracking-wider">
+              <i class="bi bi-funnel-fill text-success me-1"></i> 1. Select Row Scope (Candidates to Export)
+            </label>
+            <span class="badge bg-body-tertiary text-muted small border">Step 1 of 2</span>
           </div>
 
           <div class="row g-3">
-            <!-- Group 1: Student Information -->
             <div class="col-md-6">
-              <div class="card p-3 h-100 border">
-                <div class="text-secondary small fw-bold text-uppercase mb-2"><i class="bi bi-person me-1"></i> Student Info</div>
-                <div class="d-flex flex-column gap-1 small">
+              <label class="export-scope-card w-100" id="scopeAllCard" for="scopeAll">
+                <input type="radio" name="export_scope" id="scopeAll" value="all" checked>
+                <div class="export-scope-icon">
+                  <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="fw-bold text-body">All Evaluated Candidates</div>
+                  <div class="small text-muted">Export entire cohort dataset ({{ submissions|length }} students)</div>
+                </div>
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="export-scope-card w-100" id="scopeSelectedCard" for="scopeSelected">
+                <input type="radio" name="export_scope" id="scopeSelected" value="selected" disabled>
+                <div class="export-scope-icon text-primary bg-primary-subtle">
+                  <i class="bi bi-check2-square"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="fw-bold text-body" id="scopeSelectedLabel">Only Checked Candidates</div>
+                  <div class="small text-muted" id="scopeSelectedSub">0 selected in table (check rows in table first)</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column Selection with Search and Quick Presets -->
+        <div class="mb-3">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+            <div>
+              <label class="fw-bold small text-uppercase text-secondary tracking-wider mb-0">
+                <i class="bi bi-layout-three-columns text-success me-1"></i> 2. Select Columns to Include in Spreadsheet
+              </label>
+              <div class="small text-muted">Choose exactly which data points appear in your exported workbook</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1 font-monospace" id="activeColCount">
+                18 Columns Selected
+              </span>
+            </div>
+          </div>
+
+          <!-- Quick Preset Buttons & Search -->
+          <div class="card bg-body-tertiary border p-3 rounded-3 mb-3">
+            <div class="row g-2 align-items-center">
+              <div class="col-lg-5">
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-body border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                  <input type="text" id="columnFilterInput" class="form-control form-control-sm border-start-0" placeholder="Filter columns by keyword (e.g. leetcode, cgpa, email)...">
+                  <button type="button" class="btn btn-outline-secondary" id="btnClearColFilter" style="display: none;">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-lg-7">
+                <div class="d-flex flex-wrap gap-1 justify-content-lg-end">
+                  <button type="button" class="export-preset-pill" onclick="applyColumnPreset('recommended')">
+                    <i class="bi bi-star-fill text-warning"></i> Recommended Core
+                  </button>
+                  <button type="button" class="export-preset-pill" onclick="applyColumnPreset('academic')">
+                    <i class="bi bi-award"></i> Academics Only
+                  </button>
+                  <button type="button" class="export-preset-pill" onclick="applyColumnPreset('coding')">
+                    <i class="bi bi-cpu"></i> Coding Profiles
+                  </button>
+                  <button type="button" class="export-preset-pill" onclick="toggleAllColumns(true)">
+                    <i class="bi bi-check-all"></i> All
+                  </button>
+                  <button type="button" class="export-preset-pill" onclick="toggleAllColumns(false)">
+                    <i class="bi bi-dash-circle"></i> Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column Category Cards Grid -->
+        <div class="row g-3" id="columnCategoriesContainer">
+          <!-- Group 1: Student Information -->
+          <div class="col-md-6">
+            <div class="export-category-card">
+              <div class="export-category-header">
+                <span class="export-category-title">
+                  <i class="bi bi-person-badge-fill text-primary"></i> Candidate Identity & Contact
+                </span>
+                <span class="badge bg-body-secondary text-secondary font-monospace small cat-counter" data-cat="info">0/9</span>
+              </div>
+              <div class="d-flex flex-column gap-1">
+                <div class="export-column-item" data-keywords="rank cohort position leaderboard">
                   <label><input type="checkbox" name="columns" value="rank" class="col-check" checked> Cohort Rank (#)</label>
+                  <span class="export-column-tag">rank</span>
+                </div>
+                <div class="export-column-item" data-keywords="student name full candidate">
                   <label><input type="checkbox" name="columns" value="student_name" class="col-check" checked> Full Name</label>
+                  <span class="export-column-tag">student_name</span>
+                </div>
+                <div class="export-column-item" data-keywords="roll number id registration">
                   <label><input type="checkbox" name="columns" value="roll_number" class="col-check" checked> Roll Number</label>
+                  <span class="export-column-tag">roll_number</span>
+                </div>
+                <div class="export-column-item" data-keywords="email address college institute">
                   <label><input type="checkbox" name="columns" value="email" class="col-check" checked> College Email</label>
+                  <span class="export-column-tag">email</span>
+                </div>
+                <div class="export-column-item" data-keywords="phone mobile contact number">
                   <label><input type="checkbox" name="columns" value="phone" class="col-check"> Phone Number</label>
+                  <span class="export-column-tag">phone</span>
+                </div>
+                <div class="export-column-item" data-keywords="department branch stream program">
                   <label><input type="checkbox" name="columns" value="department" class="col-check" checked> Department</label>
+                  <span class="export-column-tag">department</span>
+                </div>
+                <div class="export-column-item" data-keywords="semester term year sem">
                   <label><input type="checkbox" name="columns" value="semester" class="col-check"> Semester</label>
+                  <span class="export-column-tag">semester</span>
+                </div>
+                <div class="export-column-item" data-keywords="batch graduating year cohort">
                   <label><input type="checkbox" name="columns" value="batch" class="col-check"> Batch Year</label>
+                  <span class="export-column-tag">batch</span>
+                </div>
+                <div class="export-column-item" data-keywords="submitted date timestamp time created">
                   <label><input type="checkbox" name="columns" value="submitted_at" class="col-check"> Submission Timestamp</label>
+                  <span class="export-column-tag">submitted_at</span>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Group 2: Academics & Evaluation Scores -->
-            <div class="col-md-6">
-              <div class="card p-3 h-100 border">
-                <div class="text-secondary small fw-bold text-uppercase mb-2"><i class="bi bi-award me-1"></i> Scores & Academics</div>
-                <div class="d-flex flex-column gap-1 small">
+          <!-- Group 2: Academics & Evaluation Scores -->
+          <div class="col-md-6">
+            <div class="export-category-card">
+              <div class="export-category-header">
+                <span class="export-category-title">
+                  <i class="bi bi-award-fill text-warning"></i> Academics & Evaluation Scores
+                </span>
+                <span class="badge bg-body-secondary text-secondary font-monospace small cat-counter" data-cat="academic">0/7</span>
+              </div>
+              <div class="d-flex flex-column gap-1">
+                <div class="export-column-item" data-keywords="cgpa gpa marks pointer percentage">
                   <label><input type="checkbox" name="columns" value="cgpa" class="col-check" checked> CGPA (Out of 10.0)</label>
+                  <span class="export-column-tag">cgpa</span>
+                </div>
+                <div class="export-column-item" data-keywords="backlogs active arrears backlog">
                   <label><input type="checkbox" name="columns" value="backlogs" class="col-check" checked> Active Backlogs</label>
+                  <span class="export-column-tag">backlogs</span>
+                </div>
+                <div class="export-column-item" data-keywords="total score points aggregate final 100">
                   <label><input type="checkbox" name="columns" value="total_score" class="col-check" checked> Total Performance Score (100)</label>
+                  <span class="export-column-tag">total_score</span>
+                </div>
+                <div class="export-column-item" data-keywords="percentile standing ranking cohort">
                   <label><input type="checkbox" name="columns" value="percentile" class="col-check" checked> Percentile (%)</label>
+                  <span class="export-column-tag">percentile</span>
+                </div>
+                <div class="export-column-item" data-keywords="grade letter marks evaluation a b c">
                   <label><input type="checkbox" name="columns" value="grade" class="col-check" checked> Letter Grade</label>
+                  <span class="export-column-tag">grade</span>
+                </div>
+                <div class="export-column-item" data-keywords="verification status verified shortlisted pending flagged">
                   <label><input type="checkbox" name="columns" value="verification_status" class="col-check" checked> Verification Status</label>
+                  <span class="export-column-tag">verification_status</span>
+                </div>
+                <div class="export-column-item" data-keywords="teacher remarks feedback comments evaluation">
                   <label><input type="checkbox" name="columns" value="teacher_remarks" class="col-check"> Teacher Remarks</label>
+                  <span class="export-column-tag">teacher_remarks</span>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Group 3: Coding Platform Handles & Metrics -->
-            <div class="col-12">
-              <div class="card p-3 border">
-                <div class="text-secondary small fw-bold text-uppercase mb-2"><i class="bi bi-cpu me-1"></i> Coding Platform Statistics</div>
-                <div class="row g-2 small">
-                  <div class="col-md-4 d-flex flex-column gap-1">
-                    <span class="fw-bold text-muted">LeetCode:</span>
+          <!-- Group 3: Coding Platform Statistics -->
+          <div class="col-12">
+            <div class="export-category-card">
+              <div class="export-category-header">
+                <span class="export-category-title">
+                  <i class="bi bi-cpu-fill text-success"></i> Competitive Coding & Platforms (10 Platforms)
+                </span>
+                <span class="badge bg-body-secondary text-secondary font-monospace small cat-counter" data-cat="coding">0/18</span>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-4 d-flex flex-column gap-1 border-end border-subtle pe-md-3">
+                  <div class="fw-bold small text-muted text-uppercase mb-1"><i class="bi bi-code-slash text-warning me-1"></i> LeetCode</div>
+                  <div class="export-column-item" data-keywords="leetcode username handle profile">
                     <label><input type="checkbox" name="columns" value="leetcode_handle" class="col-check"> LeetCode Username</label>
-                    <label><input type="checkbox" name="columns" value="leetcode_solved" class="col-check" checked> LeetCode Problems Solved</label>
-                    <label><input type="checkbox" name="columns" value="leetcode_rating" class="col-check" checked> LeetCode Contest Rating</label>
-                    <label><input type="checkbox" name="columns" value="leetcode_rank" class="col-check"> LeetCode Global Rank</label>
                   </div>
-                  <div class="col-md-4 d-flex flex-column gap-1">
-                    <span class="fw-bold text-muted">CodeChef & Codeforces:</span>
+                  <div class="export-column-item" data-keywords="leetcode solved problems count">
+                    <label><input type="checkbox" name="columns" value="leetcode_solved" class="col-check" checked> Problems Solved</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="leetcode rating contest score">
+                    <label><input type="checkbox" name="columns" value="leetcode_rating" class="col-check" checked> Contest Rating</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="leetcode rank global standing">
+                    <label><input type="checkbox" name="columns" value="leetcode_rank" class="col-check"> Global Rank</label>
+                  </div>
+                </div>
+
+                <div class="col-md-4 d-flex flex-column gap-1 border-end border-subtle pe-md-3">
+                  <div class="fw-bold small text-muted text-uppercase mb-1"><i class="bi bi-fire text-danger me-1"></i> CodeChef & Codeforces</div>
+                  <div class="export-column-item" data-keywords="codechef handle username">
                     <label><input type="checkbox" name="columns" value="codechef_handle" class="col-check"> CodeChef Username</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="codechef rating contest">
                     <label><input type="checkbox" name="columns" value="codechef_rating" class="col-check" checked> CodeChef Rating</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="codechef stars division">
                     <label><input type="checkbox" name="columns" value="codechef_stars" class="col-check" checked> CodeChef Stars</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="codechef solved questions">
+                    <label><input type="checkbox" name="columns" value="codechef_solved" class="col-check"> CodeChef Solved</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="codeforces handle username cf">
                     <label><input type="checkbox" name="columns" value="codeforces_handle" class="col-check"> Codeforces Handle</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="codeforces rating cf rating">
                     <label><input type="checkbox" name="columns" value="codeforces_rating" class="col-check" checked> Codeforces Rating</label>
                   </div>
-                  <div class="col-md-4 d-flex flex-column gap-1">
-                    <span class="fw-bold text-muted">GitHub & More Platforms:</span>
+                  <div class="export-column-item" data-keywords="codeforces rank cf rank">
+                    <label><input type="checkbox" name="columns" value="codeforces_rank" class="col-check"> Codeforces Rank</label>
+                  </div>
+                </div>
+
+                <div class="col-md-4 d-flex flex-column gap-1">
+                  <div class="fw-bold small text-muted text-uppercase mb-1"><i class="bi bi-github text-body me-1"></i> GitHub, Kaggle & More</div>
+                  <div class="export-column-item" data-keywords="github handle username git">
                     <label><input type="checkbox" name="columns" value="github_handle" class="col-check"> GitHub Username</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="github repos repositories public">
                     <label><input type="checkbox" name="columns" value="github_repos" class="col-check" checked> GitHub Public Repos</label>
-                    <label><input type="checkbox" name="columns" value="github_stars" class="col-check" checked> GitHub Stars Earned</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="github stars earned">
+                    <label><input type="checkbox" name="columns" value="github_stars" class="col-check" checked> GitHub Stars</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="atcoder rating contest">
                     <label><input type="checkbox" name="columns" value="atcoder_rating" class="col-check"> AtCoder Rating</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="interviewbit score">
                     <label><input type="checkbox" name="columns" value="interviewbit_score" class="col-check"> InterviewBit Score</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="interviewbit solved">
+                    <label><input type="checkbox" name="columns" value="interviewbit_solved" class="col-check"> InterviewBit Solved</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="kaggle tier rank">
+                    <label><input type="checkbox" name="columns" value="kaggle_tier" class="col-check"> Kaggle Tier</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="kaggle medals competitions">
                     <label><input type="checkbox" name="columns" value="kaggle_medals" class="col-check"> Kaggle Medals</label>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Group 4: Dynamic Form Questions -->
-            {% set custom_fields = form.fields.all() %}
-            {% if custom_fields %}
-            <div class="col-12">
-              <div class="card p-3 border">
-                <div class="text-secondary small fw-bold text-uppercase mb-2"><i class="bi bi-ui-checks me-1"></i> Custom Assessment Questions</div>
-                <div class="d-flex flex-wrap gap-3 small">
-                  {% for f in custom_fields %}
-                  <label class="me-2"><input type="checkbox" name="columns" value="q_{{ f.field_key }}" class="col-check"> {{ f.label }}</label>
-                  {% endfor %}
+          <!-- Group 4: Dynamic Custom Form Assessment Questions -->
+          {% set custom_fields = form.fields.all() %}
+          {% if custom_fields %}
+          <div class="col-12">
+            <div class="export-category-card">
+              <div class="export-category-header">
+                <span class="export-category-title">
+                  <i class="bi bi-ui-checks-grid text-info"></i> Custom Assessment Questions
+                </span>
+                <span class="badge bg-body-secondary text-secondary font-monospace small cat-counter" data-cat="custom">0/{{ custom_fields|length }}</span>
+              </div>
+              <div class="d-flex flex-wrap gap-3 small">
+                {% for f in custom_fields %}
+                <div class="export-column-item border p-2 rounded-2" data-keywords="{{ f.label|lower }} {{ f.field_key|lower }}">
+                  <label class="mb-0">
+                    <input type="checkbox" name="columns" value="q_{{ f.field_key }}" class="col-check">
+                    <span class="fw-semibold">{{ f.label }}</span>
+                  </label>
+                  <span class="export-column-tag ms-2">q_{{ f.field_key }}</span>
                 </div>
+                {% endfor %}
               </div>
             </div>
-            {% endif %}
           </div>
+          {% endif %}
         </div>
+      </div>
 
-        <div class="modal-footer bg-light">
-          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-sm btn-success px-4 fw-bold">
-            <i class="bi bi-file-earmark-arrow-down-fill me-1"></i> Download Filtered Excel (.xlsx)
+      <!-- Modal Footer (Sticky, Always Visible, Prominent) -->
+      <div class="modal-footer export-footer-bar">
+        <div class="d-flex align-items-center gap-2 text-muted small">
+          <i class="bi bi-file-earmark-spreadsheet-fill text-success fs-5"></i>
+          <span class="fw-semibold text-body" id="footerSummaryText">Ready to export</span>
+        </div>
+        <div class="export-footer-actions d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" id="btnDownloadCustomExcel">
+            <i class="bi bi-file-earmark-arrow-down-fill fs-6" id="btnDownloadIcon"></i>
+            <span id="btnDownloadText">Download Filtered Excel (.xlsx)</span>
           </button>
         </div>
-      </form>
-    </div>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -428,34 +628,84 @@ document.addEventListener('DOMContentLoaded', () => {
   const batchToolbar = document.getElementById('batchToolbar');
   const selectedCountText = document.getElementById('selectedCountText');
   const scopeSelectedLabel = document.getElementById('scopeSelectedLabel');
+  const scopeSelectedSub = document.getElementById('scopeSelectedSub');
+  const scopeSelectedCard = document.getElementById('scopeSelectedCard');
+  const scopeAllCard = document.getElementById('scopeAllCard');
   const exportSelectedIds = document.getElementById('exportSelectedIds');
   const scopeSelected = document.getElementById('scopeSelected');
   const scopeAll = document.getElementById('scopeAll');
   const btnCompareSelected = document.getElementById('btnCompareSelected');
+  const colCheckboxes = document.querySelectorAll('.col-check');
+  const activeColCount = document.getElementById('activeColCount');
+  const footerSummaryText = document.getElementById('footerSummaryText');
+  const columnFilterInput = document.getElementById('columnFilterInput');
+  const btnClearColFilter = document.getElementById('btnClearColFilter');
+  const customExportForm = document.getElementById('customExportForm');
+  const totalSubmissions = {{ submissions|length }};
 
+  // Row selection handler
   function updateSelection() {
     const selected = Array.from(rowCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
     const count = selected.length;
     
     if (count > 0) {
-      batchToolbar.classList.remove('d-none');
-      selectedCountText.textContent = `${count} candidate${count > 1 ? 's' : ''} selected`;
-      scopeSelectedLabel.textContent = `Only Checked Students (${count} selected)`;
-      exportSelectedIds.value = selected.join(',');
-      scopeSelected.disabled = false;
-      scopeSelected.checked = true;
+      if (batchToolbar) batchToolbar.classList.remove('d-none');
+      if (selectedCountText) selectedCountText.textContent = `${count} candidate${count > 1 ? 's' : ''} selected`;
+      if (scopeSelectedLabel) scopeSelectedLabel.textContent = `Only Checked Candidates (${count} selected)`;
+      if (scopeSelectedSub) scopeSelectedSub.textContent = `${count} student(s) selected from submissions table`;
+      if (exportSelectedIds) exportSelectedIds.value = selected.join(',');
+      if (scopeSelected) {
+        scopeSelected.disabled = false;
+        scopeSelected.checked = true;
+      }
+      if (scopeSelectedCard) {
+        scopeSelectedCard.classList.add('active');
+        scopeSelectedCard.classList.remove('opacity-50');
+      }
+      if (scopeAllCard) scopeAllCard.classList.remove('active');
     } else {
-      batchToolbar.classList.add('d-none');
-      scopeSelectedLabel.textContent = `Only Checked Students (0 selected)`;
-      exportSelectedIds.value = '';
-      scopeSelected.disabled = true;
-      scopeAll.checked = true;
+      if (batchToolbar) batchToolbar.classList.add('d-none');
+      if (scopeSelectedLabel) scopeSelectedLabel.textContent = `Only Checked Candidates`;
+      if (scopeSelectedSub) scopeSelectedSub.textContent = `0 selected in table (check rows in table first)`;
+      if (exportSelectedIds) exportSelectedIds.value = '';
+      if (scopeSelected) {
+        scopeSelected.disabled = true;
+        scopeSelected.checked = false;
+      }
+      if (scopeAll) scopeAll.checked = true;
+      if (scopeSelectedCard) {
+        scopeSelectedCard.classList.remove('active');
+        scopeSelectedCard.classList.add('opacity-50');
+      }
+      if (scopeAllCard) scopeAllCard.classList.add('active');
     }
 
     if (selectAll) {
       selectAll.checked = rowCheckboxes.length > 0 && selected.length === rowCheckboxes.length;
       selectAll.indeterminate = selected.length > 0 && selected.length < rowCheckboxes.length;
     }
+
+    updateExportSummary();
+  }
+
+  // Radio card change listeners
+  if (scopeAll) {
+    scopeAll.addEventListener('change', () => {
+      if (scopeAll.checked) {
+        scopeAllCard.classList.add('active');
+        scopeSelectedCard.classList.remove('active');
+        updateExportSummary();
+      }
+    });
+  }
+  if (scopeSelected) {
+    scopeSelected.addEventListener('change', () => {
+      if (scopeSelected.checked) {
+        scopeSelectedCard.classList.add('active');
+        scopeAllCard.classList.remove('active');
+        updateExportSummary();
+      }
+    });
   }
 
   if (selectAll) {
@@ -468,6 +718,90 @@ document.addEventListener('DOMContentLoaded', () => {
   rowCheckboxes.forEach(cb => {
     cb.addEventListener('change', updateSelection);
   });
+
+  // Calculate live export summary
+  function updateExportSummary() {
+    const checkedCols = Array.from(colCheckboxes).filter(cb => cb.checked);
+    const colCount = checkedCols.length;
+    const selectedRows = Array.from(rowCheckboxes).filter(cb => cb.checked);
+    const isSelectedScope = scopeSelected && scopeSelected.checked && !scopeSelected.disabled;
+    const rowCount = isSelectedScope ? selectedRows.length : totalSubmissions;
+
+    if (activeColCount) {
+      activeColCount.textContent = `${colCount} Column${colCount !== 1 ? 's' : ''} Selected`;
+    }
+
+    if (footerSummaryText) {
+      if (colCount === 0) {
+        footerSummaryText.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i> Please select at least 1 column to export</span>`;
+      } else {
+        footerSummaryText.innerHTML = `Exporting <strong class="text-body">${colCount} column${colCount !== 1 ? 's' : ''}</strong> for <strong class="text-body">${rowCount} student${rowCount !== 1 ? 's' : ''}</strong> (${isSelectedScope ? 'checked subset' : 'full cohort'})`;
+      }
+    }
+
+    // Update category counters
+    document.querySelectorAll('.cat-counter').forEach(badge => {
+      const card = badge.closest('.export-category-card');
+      if (card) {
+        const total = card.querySelectorAll('.col-check').length;
+        const checked = card.querySelectorAll('.col-check:checked').length;
+        badge.textContent = `${checked}/${total}`;
+        badge.className = checked > 0 
+          ? 'badge bg-success-subtle text-success font-monospace small cat-counter' 
+          : 'badge bg-body-secondary text-secondary font-monospace small cat-counter';
+      }
+    });
+  }
+
+  colCheckboxes.forEach(cb => {
+    cb.addEventListener('change', updateExportSummary);
+  });
+
+  // Presets definition
+  window.applyColumnPreset = function(preset) {
+    const recommendedKeys = ['rank', 'student_name', 'roll_number', 'email', 'department', 'cgpa', 'backlogs', 'total_score', 'percentile', 'grade', 'verification_status', 'leetcode_solved', 'leetcode_rating', 'codechef_rating', 'codechef_stars', 'codeforces_rating', 'github_repos', 'github_stars'];
+    const academicKeys = ['rank', 'student_name', 'roll_number', 'email', 'department', 'semester', 'batch', 'cgpa', 'backlogs', 'total_score', 'percentile', 'grade', 'verification_status', 'teacher_remarks', 'submitted_at'];
+    const codingKeys = ['rank', 'student_name', 'roll_number', 'leetcode_handle', 'leetcode_solved', 'leetcode_rating', 'leetcode_rank', 'codechef_handle', 'codechef_rating', 'codechef_stars', 'codechef_solved', 'codeforces_handle', 'codeforces_rating', 'codeforces_rank', 'github_handle', 'github_repos', 'github_stars', 'atcoder_rating', 'interviewbit_score', 'interviewbit_solved', 'kaggle_tier', 'kaggle_medals'];
+
+    let targetKeys = [];
+    if (preset === 'recommended') targetKeys = recommendedKeys;
+    else if (preset === 'academic') targetKeys = academicKeys;
+    else if (preset === 'coding') targetKeys = codingKeys;
+
+    colCheckboxes.forEach(cb => {
+      cb.checked = targetKeys.includes(cb.value);
+    });
+
+    updateExportSummary();
+  };
+
+  window.toggleAllColumns = function(check) {
+    colCheckboxes.forEach(cb => cb.checked = check);
+    updateExportSummary();
+  };
+
+  // Live Column Search Filter
+  if (columnFilterInput) {
+    columnFilterInput.addEventListener('input', () => {
+      const q = columnFilterInput.value.trim().toLowerCase();
+      if (btnClearColFilter) btnClearColFilter.style.display = q ? 'inline-block' : 'none';
+
+      document.querySelectorAll('.export-column-item').forEach(item => {
+        const text = (item.textContent || '').toLowerCase();
+        const keywords = (item.getAttribute('data-keywords') || '').toLowerCase();
+        const match = !q || text.includes(q) || keywords.includes(q);
+        item.style.display = match ? 'flex' : 'none';
+      });
+    });
+  }
+
+  if (btnClearColFilter) {
+    btnClearColFilter.addEventListener('click', () => {
+      columnFilterInput.value = '';
+      columnFilterInput.dispatchEvent(new Event('input'));
+      columnFilterInput.focus();
+    });
+  }
 
   // Compare candidates
   if (btnCompareSelected) {
@@ -485,15 +819,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Handle custom excel submit scope
-  const customExportForm = document.getElementById('customExportForm');
+  // Custom export form submission
   if (customExportForm) {
     customExportForm.addEventListener('submit', (e) => {
-      const isSelectedOnly = scopeSelected.checked;
+      const checkedCols = Array.from(colCheckboxes).filter(cb => cb.checked);
+      if (checkedCols.length === 0) {
+        alert('Please select at least one column to include in your spreadsheet export.');
+        e.preventDefault();
+        return;
+      }
+
+      const isSelectedOnly = scopeSelected && scopeSelected.checked && !scopeSelected.disabled;
       if (isSelectedOnly) {
         const selected = Array.from(rowCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
         if (selected.length === 0) {
-          alert('No students selected. Please check at least one student or choose "All Evaluated Students".');
+          alert('No students selected. Please check at least one student in the table or choose "All Evaluated Candidates".');
           e.preventDefault();
           return;
         }
@@ -501,12 +841,21 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         exportSelectedIds.value = '';
       }
+
+      // Visual feedback for file generation
+      const btn = document.getElementById('btnDownloadCustomExcel');
+      const icon = document.getElementById('btnDownloadIcon');
+      const text = document.getElementById('btnDownloadText');
+      if (btn && icon && text) {
+        icon.className = 'spinner-border spinner-border-sm me-1';
+        text.textContent = 'Generating Excel...';
+        setTimeout(() => {
+          icon.className = 'bi bi-file-earmark-arrow-down-fill fs-6';
+          text.textContent = 'Download Filtered Excel (.xlsx)';
+        }, 3000);
+      }
     });
   }
-
-  window.toggleAllColumns = function(check) {
-    document.querySelectorAll('.col-check').forEach(cb => cb.checked = check);
-  };
 
   window.executeBatchAction = function(action) {
     const selected = Array.from(rowCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
@@ -523,6 +872,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('batchSelectedIdsInput').value = selected.join(',');
     document.getElementById('batchActionForm').submit();
   };
+
+  // Auto-open modal if URL has ?export=1 or #export
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('export') === '1' || window.location.hash === '#export') {
+    const modalEl = document.getElementById('customExcelModal');
+    if (modalEl) {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
+
+  // Initial calculation on load
+  updateSelection();
+  updateExportSummary();
 });
 </script>
 {% endblock %}

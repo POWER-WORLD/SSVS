@@ -1361,3 +1361,285 @@ a:hover {
   background: linear-gradient(90deg, var(--primary) 0%, #8b5cf6 50%, #06b6d4 100%);
 }
 
+/* ==========================================================================
+   MODAL ARCHITECTURE & SCROLLABLE VIEWPORT FIXES
+   ========================================================================== */
+.modal-dialog-scrollable form.modal-content,
+.modal-dialog-scrollable .modal-content > form {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.modal-dialog-scrollable form.modal-content > .modal-header,
+.modal-dialog-scrollable .modal-content > form > .modal-header {
+  flex-shrink: 0 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1055 !important;
+}
+
+.modal-dialog-scrollable form.modal-content > .modal-body,
+.modal-dialog-scrollable .modal-content > form > .modal-body {
+  overflow-y: auto !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-dialog-scrollable form.modal-content > .modal-footer,
+.modal-dialog-scrollable .modal-content > form > .modal-footer {
+  flex-shrink: 0 !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 1055 !important;
+  background: var(--bg-surface-elevated) !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* ==========================================================================
+   GRANULAR CUSTOM EXCEL EXPORT MODAL STYLES
+   ========================================================================== */
+.export-modal-header {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 0;
+}
+
+.export-modal-header .btn-close {
+  filter: brightness(0) invert(1);
+}
+
+.export-scope-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.export-scope-card:hover {
+  border-color: #10b981;
+  background: var(--bg-surface-elevated);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.export-scope-card.active,
+.export-scope-card:has(input:checked) {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  box-shadow: 0 0 0 1px #10b981, var(--shadow-sm);
+}
+
+.export-scope-card input[type="radio"] {
+  accent-color: #10b981;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.export-scope-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+.export-category-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.export-category-card:hover {
+  border-color: var(--border-muted);
+  box-shadow: var(--shadow-sm);
+}
+
+.export-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.export-category-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export-column-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-size: 0.85rem;
+  margin-bottom: 0.2rem;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.export-column-item:hover {
+  background: var(--bg-surface-elevated);
+}
+
+.export-column-item:has(input:checked) {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.export-column-item label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-grow: 1;
+  margin-bottom: 0;
+}
+
+.export-column-item input[type="checkbox"] {
+  accent-color: #10b981;
+  width: 1.05rem;
+  height: 1.05rem;
+  cursor: pointer;
+}
+
+.export-column-tag {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.export-preset-pill {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.export-preset-pill:hover {
+  border-color: #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.export-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+}
+
+/* ==========================================================================
+   RESPONSIVENESS UTILITIES (MOBILE & TABLET EXCELLENCE)
+   ========================================================================== */
+@media (max-width: 991.98px) {
+  .export-footer-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .export-footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    width: 100%;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  .export-scope-card {
+    padding: 0.85rem 1rem;
+  }
+  .export-scope-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+  .export-footer-actions {
+    flex-direction: column;
+  }
+  .export-footer-actions .btn {
+    width: 100%;
+  }
+  .table-responsive {
+    border-radius: var(--radius-md);
+  }
+}
+
+/* ==========================================================================
+   CODING PLATFORM BRAND BADGES & INDICATORS
+   ========================================================================== */
+.platform-indicator {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--text-muted, #64748b);
+}
+
+.platform-indicator-leetcode { background-color: #FFA116; }
+.platform-indicator-codechef { background-color: #8B5A2B; }
+.platform-indicator-codeforces { background-color: #1F8ACB; }
+.platform-indicator-github { background-color: #24292E; }
+.platform-indicator-hackerrank { background-color: #2EC866; }
+.platform-indicator-geeksforgeeks { background-color: #2F8D46; }
+.platform-indicator-atcoder { background-color: #6366F1; }
+.platform-indicator-interviewbit { background-color: #E85B5B; }
+.platform-indicator-kaggle { background-color: #20BEFF; }
+
+[data-bs-theme="dark"] .platform-indicator-github {
+  background-color: #f1f5f9;
+}

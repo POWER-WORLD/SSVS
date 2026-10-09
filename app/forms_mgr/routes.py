@@ -492,12 +492,17 @@ def delete_submission(form_id, submission_id):
 def export_custom_excel(form_id):
     form = Form.query.filter_by(id=form_id, teacher_id=current_user.id).first_or_404()
     
-    # Selected submissions
-    selected_ids = request.form.getlist('selected_ids') or request.args.getlist('selected_ids')
-    if not selected_ids:
-        raw_ids = request.form.get('selected_ids_str') or request.args.get('selected_ids_str', '')
-        if raw_ids:
-            selected_ids = [s.strip() for s in raw_ids.split(',') if s.strip()]
+    # Determine row export scope (all cohort vs selected candidates)
+    export_scope = request.form.get('export_scope') or request.args.get('export_scope', '')
+    
+    if export_scope == 'all':
+        selected_ids = None
+    else:
+        selected_ids = request.form.getlist('selected_ids') or request.args.getlist('selected_ids')
+        if not selected_ids:
+            raw_ids = request.form.get('selected_ids_str') or request.args.get('selected_ids_str', '')
+            if raw_ids:
+                selected_ids = [s.strip() for s in raw_ids.split(',') if s.strip()]
             
     # Selected columns
     selected_cols = request.form.getlist('columns') or request.args.getlist('columns')
@@ -644,11 +649,39 @@ def compare_submissions(form_id):
     )
 
 
+DEFAULT_BENCHMARKS = {
+    'cgpa': 10.0,
+    'leetcode_solved': 300.0,
+    'leetcode_rating': 1800.0,
+    'leetcode_hard': 50.0,
+    'codechef_rating': 1700.0,
+    'codechef_stars': 5.0,
+    'codeforces_rating': 1600.0,
+    'github_repos': 20.0,
+    'github_stars': 10.0,
+    'github_stars_repos': 20.0,
+    'github_contributions': 365.0,
+    'hackerrank_badges': 8.0,
+    'gfg_problems': 250.0,
+    'gfg_score': 1500.0,
+    'atcoder_rating': 1200.0,
+    'atcoder_highest': 1400.0,
+    'atcoder_contests': 20.0,
+    'interviewbit_score': 3000.0,
+    'interviewbit_solved': 200.0,
+    'kaggle_medals': 5.0,
+    'kaggle_score': 100.0,
+}
+
 @forms_mgr_bp.route('/<int:form_id>/formula', methods=['GET', 'POST'])
 @login_required
 def formula_builder(form_id):
     form = Form.query.filter_by(id=form_id, teacher_id=current_user.id).first_or_404()
     formula = form.formulas.filter_by(is_active=True).first()
+    if not formula:
+        formula = ScoreFormula(form_id=form.id, name='Standard Placement Formula', is_active=True)
+        db.session.add(formula)
+        db.session.flush()
     
     if request.method == 'POST':
         # Update formula parameters
@@ -661,7 +694,11 @@ def formula_builder(form_id):
         rule_labels = request.form.getlist('rule_display_label')
         rule_weights = request.form.getlist('rule_weight')
         rule_maxs = request.form.getlist('rule_max_marks')
+        rule_benchmarks = request.form.getlist('rule_benchmark')
+        rule_multipliers = request.form.getlist('rule_multiplier')
         rule_penalties = request.form.getlist('rule_penalty')
+        rule_bonus_thresholds = request.form.getlist('rule_bonus_threshold')
+        rule_bonus_marks_list = request.form.getlist('rule_bonus_marks')
         rule_categories = request.form.getlist('rule_category')
         
         # Clear existing rules and re-add
@@ -671,31 +708,35 @@ def formula_builder(form_id):
             m_key = rule_keys[i].strip()
             if not m_key:
                 continue
-            cat = rule_categories[i] if i < len(rule_categories) else 'coding'
+            cat = rule_categories[i].strip() if i < len(rule_categories) and rule_categories[i].strip() else 'coding'
             w = float(rule_weights[i]) if i < len(rule_weights) and rule_weights[i] else 10.0
             mx = float(rule_maxs[i]) if i < len(rule_maxs) and rule_maxs[i] else 10.0
             pen = float(rule_penalties[i]) if i < len(rule_penalties) and rule_penalties[i] else 0.0
+            b_thresh = float(rule_bonus_thresholds[i]) if i < len(rule_bonus_thresholds) and rule_bonus_thresholds[i] else 0.0
+            b_marks = float(rule_bonus_marks_list[i]) if i < len(rule_bonus_marks_list) and rule_bonus_marks_list[i] else 0.0
             
-            mult = 1.0
-            if m_key == 'cgpa':
-                mult = mx / 10.0
-            elif m_key == 'leetcode_solved':
-                mult = mx / 300.0
-            elif m_key == 'leetcode_rating':
-                mult = mx / 1800.0
-            elif m_key == 'codechef_rating':
-                mult = mx / 1700.0
-            elif m_key == 'codeforces_rating':
-                mult = mx / 1600.0
+            explicit_mult = float(rule_multipliers[i]) if i < len(rule_multipliers) and rule_multipliers[i] else 0.0
+            benchmark_val = float(rule_benchmarks[i]) if i < len(rule_benchmarks) and rule_benchmarks[i] else 0.0
+            
+            if explicit_mult > 0.0:
+                mult = explicit_mult
+            elif benchmark_val > 0.0:
+                mult = mx / benchmark_val
+            elif m_key in DEFAULT_BENCHMARKS and DEFAULT_BENCHMARKS[m_key] > 0.0:
+                mult = mx / DEFAULT_BENCHMARKS[m_key]
+            else:
+                mult = 1.0
                 
             rule = FormulaRule(
                 formula_id=formula.id,
                 metric_key=m_key,
-                display_label=rule_labels[i] if i < len(rule_labels) else m_key.title(),
+                display_label=rule_labels[i] if i < len(rule_labels) and rule_labels[i] else m_key.replace('_', ' ').title(),
                 weight_percentage=w,
                 max_marks=mx,
                 multiplier=mult,
                 penalty_per_unit=pen,
+                bonus_threshold=b_thresh,
+                bonus_marks=b_marks,
                 category=cat
             )
             db.session.add(rule)
@@ -709,7 +750,16 @@ def formula_builder(form_id):
         return redirect(url_for('forms_mgr.formula_builder', form_id=form.id))
 
     rules = formula.rules.all() if formula else []
-    return render_template('scoring/formula_builder.html', form=form, formula=formula, rules=rules, presets=DEFAULT_PRESETS)
+    custom_fields = [f for f in form.fields.all() if f.field_key]
+    return render_template(
+        'scoring/formula_builder.html',
+        form=form,
+        formula=formula,
+        rules=rules,
+        presets=DEFAULT_PRESETS,
+        custom_fields=custom_fields,
+        default_benchmarks=DEFAULT_BENCHMARKS
+    )
 
 @forms_mgr_bp.route('/<int:form_id>/formula/apply-preset/<preset_name>', methods=['POST'])
 @login_required
