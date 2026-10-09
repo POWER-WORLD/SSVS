@@ -16,6 +16,8 @@ services:
         generateValue: true
       - key: DATABASE_URL
         sync: false
+      - key: INIT_DB
+        value: "1"
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

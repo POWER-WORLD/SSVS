@@ -10,6 +10,16 @@ def get_database_uri(default_sqlite_name='ssvs_dev.db'):
     if db_url:
         if db_url.startswith('postgres://'):
             db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        # Adapt driver dialect if specific driver is missing in environment
+        if db_url.startswith('postgresql://'):
+            try:
+                import psycopg  # psycopg v3 is preferred
+            except ImportError:
+                try:
+                    import psycopg2
+                    db_url = db_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+                except ImportError:
+                    pass
         return db_url
     return f"sqlite:///{os.path.join(BASE_DIR, 'instance', default_sqlite_name)}"
 

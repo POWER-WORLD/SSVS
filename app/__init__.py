@@ -88,8 +88,8 @@ def create_app(config_name=None):
     def forbidden_error(error):
         return render_template('errors/403.html'), 403
 
-    # Idempotent schema creation (run on explicit flag or in testing)
-    if app.config.get('TESTING') or os.environ.get('INIT_DB') == '1':
+    # Idempotent schema creation (run on explicit flag, in testing, or on Render deployment)
+    if app.config.get('TESTING') or os.environ.get('INIT_DB') == '1' or os.environ.get('RENDER'):
         with app.app_context():
             try:
                 db.create_all()
