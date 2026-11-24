@@ -27,21 +27,21 @@ The following production screenshots highlight the core interface experiences ac
 Transforming multi-platform competitive coding and academic performance into unified placement intelligence with composite scoring, percentile ranking, and instant leaderboard search.
 
 <p align="center">
-  <img src="app/public/screenshots/Screenshot%202026-11-24%20170148.png" alt="SSVS Public Landing Page & Real-Time Placement Matrix" width="100%">
+  <img src="app/public/screenshots/ssvs-landing-hero.png" alt="SSVS Public Landing Page & Real-Time Placement Matrix" width="100%">
 </p>
 
 ### 2.2. Comprehensive 14-Platform Harvester Ecosystem
 Unified extraction pipeline spanning 14 competitive coding, problem-solving, and version-control platforms with automated fallbacks and zero student logins.
 
 <p align="center">
-  <img src="app/public/screenshots/Screenshot%202026-11-24%20170214.png" alt="14 Supported Competitive Coding & Academic Platforms" width="100%">
+  <img src="app/public/screenshots/ssvs-faculty-dashboard.png" alt="14 Supported Competitive Coding & Academic Platforms" width="100%">
 </p>
 
 ### 2.3. Faculty Administration & Live Moderation Studio
 Personalized instructor cockpit featuring active assessment drives, live handle metric testing (e.g. LeetCode, Codeforces), and real-time audit logs.
 
 <p align="center">
-  <img src="app/public/screenshots/Screenshot%202026-11-24%20170516.png" alt="Faculty Dashboard & Assessment Drive Studio" width="100%">
+  <img src="app/public/screenshots/ssvs-platforms-ecosystem.png" alt="Faculty Dashboard & Assessment Drive Studio" width="100%">
 </p>
 
 ---
