@@ -182,7 +182,7 @@ class ProductionConfig(Config):
     HSTS_INCLUDE_SUBDOMAINS = True
     HSTS_PRELOAD = True
 
-    # Ensure CORS origins include ssvs-portal.onrender.com and netlify in production
+    # Ensure CORS origins include ssvsportal.onrender.com and netlify in production
     _prod_cors_env = os.environ.get('CORS_ORIGINS', '')
     if _prod_cors_env:
         CORS_ORIGINS = [o.strip() for o in _prod_cors_env.split(',') if o.strip()]

@@ -67,7 +67,7 @@ The complete application is accessible via the production deployment:
 | **LinkedIn Profile** | [linkedin.com/in/pawankumar101](https://www.linkedin.com/in/pawankumar101/) |
 | **LeetCode Profile** | [leetcode.com/u/pk3253702](https://leetcode.com/u/pk3253702/) |
 | **GitHub Organization / Profile** | [github.com/POWER-WORLD](https://github.com/POWER-WORLD) |
-| **Live Showcase** | [ssvs-portal.onrender.com](https://ssvsportal.onrender.com) |
+| **Live Showcase** | [ssvsportal.onrender.com](https://ssvsportal.onrender.com) |
 
 ---
 
