@@ -19,15 +19,42 @@ SSVS delivers an automated evaluation pipeline:
 
 ---
 
-## 2. Live Demonstrations & Public Endpoints
+## 2. Visual Interface & Production Showcase
+
+The following production screenshots highlight the core interface experiences across student discovery, automated multi-platform extraction, and faculty administration.
+
+### 2.1. Enterprise Landing Page & Candidate Placement Matrix
+Transforming multi-platform competitive coding and academic performance into unified placement intelligence with composite scoring, percentile ranking, and instant leaderboard search.
+
+<p align="center">
+  <img src="app/public/screenshots/Screenshot%202026-11-24%20170148.png" alt="SSVS Public Landing Page & Real-Time Placement Matrix" width="100%">
+</p>
+
+### 2.2. Comprehensive 14-Platform Harvester Ecosystem
+Unified extraction pipeline spanning 14 competitive coding, problem-solving, and version-control platforms with automated fallbacks and zero student logins.
+
+<p align="center">
+  <img src="app/public/screenshots/Screenshot%202026-11-24%20170214.png" alt="14 Supported Competitive Coding & Academic Platforms" width="100%">
+</p>
+
+### 2.3. Faculty Administration & Live Moderation Studio
+Personalized instructor cockpit featuring active assessment drives, live handle metric testing (e.g. LeetCode, Codeforces), and real-time audit logs.
+
+<p align="center">
+  <img src="app/public/screenshots/Screenshot%202026-11-24%20170516.png" alt="Faculty Dashboard & Assessment Drive Studio" width="100%">
+</p>
+
+---
+
+## 3. Live Demonstrations & Public Endpoints
 
 The complete application is accessible via the production deployment:
 
-- **Live Application Deployment (Frontend & Backend)**: [https://ssvs-portal.onrender.com](https://ssvs-portal.onrender.com)
-- **Primary Web Service**: `https://ssvs-portal.onrender.com`
-- **Application Health Check Probe**: `https://ssvs-portal.onrender.com/healthz`
-- **Public Leaderboard Portal**: `https://ssvs-portal.onrender.com/leaderboard`
-- **Faculty Portal**: `https://ssvs-portal.onrender.com/auth/login`
+- **Live Application Deployment (Frontend & Backend)**: [https://ssvsportal.onrender.com](https://ssvsportal.onrender.com)
+- **Primary Web Service**: `https://ssvsportal.onrender.com`
+- **Application Health Check Probe**: `https://ssvsportal.onrender.com/healthz`
+- **Public Leaderboard Portal**: `https://ssvsportal.onrender.com/leaderboard`
+- **Faculty Portal**: `https://ssvsportal.onrender.com/auth/login`
 
 ---
 
@@ -40,7 +67,7 @@ The complete application is accessible via the production deployment:
 | **LinkedIn Profile** | [linkedin.com/in/pawankumar101](https://www.linkedin.com/in/pawankumar101/) |
 | **LeetCode Profile** | [leetcode.com/u/pk3253702](https://leetcode.com/u/pk3253702/) |
 | **GitHub Organization / Profile** | [github.com/POWER-WORLD](https://github.com/POWER-WORLD) |
-| **Live Showcase** | [ssvs-portal.onrender.com](https://ssvs-portal.onrender.com) |
+| **Live Showcase** | [ssvs-portal.onrender.com](https://ssvsportal.onrender.com) |
 
 ---
 
@@ -106,6 +133,8 @@ d:/Agents/SSVS/
 ├── app/
 │   ├── __init__.py                # Application factory (create_app) & extensions
 │   ├── config.py                  # Environment-driven configuration (PostgreSQL / SQLite)
+│   ├── public/                    # Showcase screenshots & static presentation media
+│   │   └── screenshots/           # Application interface captures
 │   ├── models/
 │   │   ├── __init__.py            # SQLAlchemy db instance & model exports
 │   │   ├── user.py                # Teacher authentication & account profile model
@@ -209,6 +238,10 @@ d:/Agents/SSVS/
 
 SSVS supports 14 distinct platforms and evaluation dimensions. Each platform extractor features defensive parsing, standardized metric outputs, and deterministic fallbacks.
 
+<p align="center">
+  <img src="app/public/screenshots/Screenshot%202026-11-24%20170214.png" alt="14 Supported Competitive Coding & Academic Platforms" width="100%">
+</p>
+
 | # | Platform / Dimension | Primary Metrics Extracted | URL Syntax & Patterns | Extractor File |
 | :---: | :--- | :--- | :--- | :--- |
 | 1 | **LeetCode** | Problems Solved (Total, Easy, Medium, Hard), Contest Rating, Global Ranking, Acceptance Rate | `leetcode.com/u/<username>`<br>`leetcode.com/<username>` | [`app/extractors/leetcode.py`](file:///d:/Agents/SSVS/app/extractors/leetcode.py) |
@@ -244,6 +277,10 @@ The student interface requires **zero authentication** to eliminate registration
 ## 10. Faculty & Administrator Moderation Portal
 
 The faculty administrative portal provides comprehensive evaluation oversight:
+
+<p align="center">
+  <img src="app/public/screenshots/Screenshot%202026-11-24%20170516.png" alt="Faculty Dashboard & Assessment Drive Studio" width="100%">
+</p>
 
 - **Authentication & Security**: Protected by session management, rate-limiting, and email verification.
 - **Form Management**: Instructors create, edit, clone, and close forms, with response limits and deadline scheduling.
@@ -548,7 +585,7 @@ python -c "from app import create_app; app = create_app('development'); print('A
 ## 26. Production Deployment Engineering
 
 ### 26.1. Render Cloud Production Deployment
-The application is accessible in production at [https://ssvs-portal.onrender.com](https://ssvs-portal.onrender.com). The deployment serves the unified frontend templates and backend API endpoints with SSL/TLS encryption.
+The application is accessible in production at [https://ssvsportal.onrender.com](https://ssvsportal.onrender.com). The deployment serves the unified frontend templates and backend API endpoints with SSL/TLS encryption.
 
 ### 26.2. Render Cloud Blueprint Deployment
 The repository includes [`render.yaml`](file:///d:/Agents/SSVS/render.yaml) for 1-click infrastructure provisioning:

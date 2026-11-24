@@ -77,7 +77,7 @@ class Config:
     CORS_ORIGINS = [
         origin.strip()
         for origin in (_cors_env.split(',') if _cors_env else [
-            'https://ssvs-portal.onrender.com',
+            'https://ssvsportal.onrender.com',
             'https://skgmobile.netlify.app',
             'http://localhost:3000',
             'http://localhost:5173',
@@ -86,8 +86,8 @@ class Config:
         ])
         if origin.strip()
     ]
-    if 'https://ssvs-portal.onrender.com' not in CORS_ORIGINS:
-        CORS_ORIGINS.append('https://ssvs-portal.onrender.com')
+    if 'https://ssvsportal.onrender.com' not in CORS_ORIGINS:
+        CORS_ORIGINS.append('https://ssvsportal.onrender.com')
     if 'https://skgmobile.netlify.app' not in CORS_ORIGINS:
         CORS_ORIGINS.append('https://skgmobile.netlify.app')
 
@@ -109,7 +109,7 @@ class Config:
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
             "font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com; "
             "img-src 'self' data: https: blob:; "
-            "connect-src 'self' https://ssvs-portal.onrender.com https://skgmobile.netlify.app; "
+            "connect-src 'self' https://ssvsportal.onrender.com https://skgmobile.netlify.app; "
             "frame-ancestors 'self';"
         )
     }
@@ -186,12 +186,12 @@ class ProductionConfig(Config):
     _prod_cors_env = os.environ.get('CORS_ORIGINS', '')
     if _prod_cors_env:
         CORS_ORIGINS = [o.strip() for o in _prod_cors_env.split(',') if o.strip()]
-        if 'https://ssvs-portal.onrender.com' not in CORS_ORIGINS:
-            CORS_ORIGINS.append('https://ssvs-portal.onrender.com')
+        if 'https://ssvsportal.onrender.com' not in CORS_ORIGINS:
+            CORS_ORIGINS.append('https://ssvsportal.onrender.com')
         if 'https://skgmobile.netlify.app' not in CORS_ORIGINS:
             CORS_ORIGINS.append('https://skgmobile.netlify.app')
     else:
-        CORS_ORIGINS = ['https://ssvs-portal.onrender.com', 'https://skgmobile.netlify.app']
+        CORS_ORIGINS = ['https://ssvsportal.onrender.com', 'https://skgmobile.netlify.app']
 
     # Production database pool tuning
     SQLALCHEMY_ENGINE_OPTIONS = {
