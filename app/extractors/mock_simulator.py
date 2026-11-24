@@ -2,7 +2,7 @@ import hashlib
 from typing import Dict, Any
 from .schema import (
     LeetCodeStats, CodeChefStats, CodeforcesStats, GitHubStats, HackerRankStats, GeeksforGeeksStats,
-    AtCoderStats, InterviewBitStats, KaggleStats
+    AtCoderStats, InterviewBitStats, KaggleStats, SpojStats, CodingNinjasStats, CSESStats, TopCoderStats
 )
 
 class MockSimulator:
@@ -205,6 +205,85 @@ class MockSimulator:
             datasets_count=1 + (seed % 5),
             notebooks_count=4 + (seed % 15),
             followers=8 + (seed % 80),
+            is_simulated=True
+        )
+
+    @classmethod
+    def simulate_spoj(cls, username: str) -> SpojStats:
+        seed = cls._seed(username)
+        solved = 25 + (seed % 240)
+        points = round(50.0 + float((seed % 800)) * 1.75, 1)
+        rank = 1500 + (seed % 35000)
+        solutions = solved + 20 + (seed % 100)
+        return SpojStats(
+            username=username,
+            profile_url=f"https://www.spoj.com/users/{username}/",
+            avatar_url=f"https://api.dicebear.com/7.x/identicon/svg?seed={username}",
+            problems_solved=solved,
+            points=points,
+            world_rank=rank,
+            solutions_submitted=solutions,
+            is_simulated=True
+        )
+
+    @classmethod
+    def simulate_codingninjas(cls, username: str) -> CodingNinjasStats:
+        seed = cls._seed(username)
+        solved = 45 + (seed % 280)
+        score = 450 + (seed % 3200)
+        streak = 5 + (seed % 50)
+        rank = 1200 + (seed % 25000)
+        badges = 2 + (seed % 9)
+        return CodingNinjasStats(
+            username=username,
+            profile_url=f"https://www.naukri.com/code360/profile/{username}",
+            avatar_url=f"https://api.dicebear.com/7.x/identicon/svg?seed={username}",
+            problems_solved=solved,
+            coding_score=score,
+            current_streak=streak,
+            global_rank=rank,
+            badges_count=badges,
+            is_simulated=True
+        )
+
+    @classmethod
+    def simulate_cses(cls, username: str) -> CSESStats:
+        seed = cls._seed(username)
+        solved = 20 + (seed % 180)
+        return CSESStats(
+            username=username,
+            profile_url=f"https://cses.fi/user/{username}",
+            avatar_url=f"https://api.dicebear.com/7.x/identicon/svg?seed={username}",
+            problems_solved=solved,
+            total_problems=300,
+            is_simulated=True
+        )
+
+    @classmethod
+    def simulate_topcoder(cls, username: str) -> TopCoderStats:
+        seed = cls._seed(username)
+        rating = 950 + (seed % 1250)
+        highest = rating + 60 + (seed % 120)
+        if rating < 900:
+            rank_name = "Grey"
+        elif rating < 1200:
+            rank_name = "Green"
+        elif rating < 1500:
+            rank_name = "Blue"
+        elif rating < 2200:
+            rank_name = "Yellow"
+        else:
+            rank_name = "Red"
+
+        return TopCoderStats(
+            username=username,
+            profile_url=f"https://profiles.topcoder.com/{username}",
+            avatar_url=f"https://api.dicebear.com/7.x/identicon/svg?seed={username}",
+            rating=rating,
+            highest_rating=highest,
+            rank=rank_name,
+            competitions_count=4 + (seed % 28),
+            problems_solved=25 + (seed % 150),
             is_simulated=True
         )
 

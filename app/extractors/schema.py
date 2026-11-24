@@ -122,6 +122,50 @@ class KaggleStats:
     is_simulated: bool = False
 
 @dataclass
+class SpojStats:
+    username: str = ""
+    profile_url: str = ""
+    avatar_url: str = ""
+    problems_solved: int = 0
+    points: float = 0.0
+    world_rank: int = 0
+    solutions_submitted: int = 0
+    is_simulated: bool = False
+
+@dataclass
+class CodingNinjasStats:
+    username: str = ""
+    profile_url: str = ""
+    avatar_url: str = ""
+    problems_solved: int = 0
+    coding_score: int = 0
+    current_streak: int = 0
+    global_rank: int = 0
+    badges_count: int = 0
+    is_simulated: bool = False
+
+@dataclass
+class CSESStats:
+    username: str = ""
+    profile_url: str = ""
+    avatar_url: str = ""
+    problems_solved: int = 0
+    total_problems: int = 300
+    is_simulated: bool = False
+
+@dataclass
+class TopCoderStats:
+    username: str = ""
+    profile_url: str = ""
+    avatar_url: str = ""
+    rating: int = 0
+    highest_rating: int = 0
+    rank: str = "unrated"
+    competitions_count: int = 0
+    problems_solved: int = 0
+    is_simulated: bool = False
+
+@dataclass
 class UnifiedStudentStats:
     leetcode: Optional[LeetCodeStats] = None
     codechef: Optional[CodeChefStats] = None
@@ -132,6 +176,10 @@ class UnifiedStudentStats:
     atcoder: Optional[AtCoderStats] = None
     interviewbit: Optional[InterviewBitStats] = None
     kaggle: Optional[KaggleStats] = None
+    spoj: Optional[SpojStats] = None
+    codingninjas: Optional[CodingNinjasStats] = None
+    cses: Optional[CSESStats] = None
+    topcoder: Optional[TopCoderStats] = None
     
     # Academics
     cgpa: float = 0.0
@@ -150,5 +198,9 @@ class UnifiedStudentStats:
             'atcoder': asdict(self.atcoder) if self.atcoder else None,
             'interviewbit': asdict(self.interviewbit) if self.interviewbit else None,
             'kaggle': asdict(self.kaggle) if self.kaggle else None,
+            'spoj': asdict(self.spoj) if self.spoj else None,
+            'codingninjas': asdict(self.codingninjas) if self.codingninjas else None,
+            'cses': asdict(self.cses) if self.cses else None,
+            'topcoder': asdict(self.topcoder) if self.topcoder else None,
         }
         return result

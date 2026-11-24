@@ -218,6 +218,168 @@ DEFAULT_PRESETS: Dict[str, Dict[str, Any]] = {
                 'category': 'penalty'
             }
         ]
+    },
+    'algorithms_mastery': {
+        'name': 'Algorithmic Problem Solving Mastery',
+        'description': 'Rigorous problem solving benchmark across CSES, SPOJ, TopCoder, and Coding Ninjas Studio.',
+        'normalization_method': 'min_max',
+        'max_total_marks': 100.0,
+        'rules': [
+            {
+                'metric_key': 'cses_solved',
+                'display_label': 'CSES Problem Set Solved (Benchmark 100+)',
+                'weight_percentage': 20.0,
+                'max_marks': 20.0,
+                'multiplier': 20.0 / 100.0,
+                'bonus_threshold': 150,
+                'bonus_marks': 3.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'topcoder_rating',
+                'display_label': 'TopCoder Contest Rating (Benchmark 1500+)',
+                'weight_percentage': 20.0,
+                'max_marks': 20.0,
+                'multiplier': 20.0 / 1500.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'spoj_points',
+                'display_label': 'SPOJ Points (Benchmark 400+)',
+                'weight_percentage': 20.0,
+                'max_marks': 20.0,
+                'multiplier': 20.0 / 400.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'codingninjas_score',
+                'display_label': 'Coding Ninjas Coding Score (Benchmark 1500+)',
+                'weight_percentage': 20.0,
+                'max_marks': 20.0,
+                'multiplier': 20.0 / 1500.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'cgpa',
+                'display_label': 'Academic CGPA',
+                'weight_percentage': 20.0,
+                'max_marks': 20.0,
+                'multiplier': 2.0,
+                'category': 'academic'
+            },
+            {
+                'metric_key': 'backlogs_penalty',
+                'display_label': 'Active Backlog Penalty',
+                'weight_percentage': 0.0,
+                'max_marks': 0.0,
+                'penalty_per_unit': 5.0,
+                'category': 'penalty'
+            }
+        ]
+    },
+    'global_competitive_elite': {
+        'name': 'Global Competitive Programming Elite',
+        'description': 'International competitive programming benchmark spanning TopCoder, Codeforces, CSES, and SPOJ.',
+        'normalization_method': 'min_max',
+        'max_total_marks': 100.0,
+        'rules': [
+            {
+                'metric_key': 'topcoder_rating',
+                'display_label': 'TopCoder Rating (Benchmark 1600+)',
+                'weight_percentage': 25.0,
+                'max_marks': 25.0,
+                'multiplier': 25.0 / 1600.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'codeforces_rating',
+                'display_label': 'Codeforces Rating (Benchmark 1600+)',
+                'weight_percentage': 25.0,
+                'max_marks': 25.0,
+                'multiplier': 25.0 / 1600.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'cses_solved',
+                'display_label': 'CSES Problem Set Solved (Benchmark 120+)',
+                'weight_percentage': 20.0,
+                'max_marks': 20.0,
+                'multiplier': 20.0 / 120.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'spoj_solved',
+                'display_label': 'SPOJ Problems Solved (Benchmark 150+)',
+                'weight_percentage': 15.0,
+                'max_marks': 15.0,
+                'multiplier': 15.0 / 150.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'cgpa',
+                'display_label': 'Academic CGPA',
+                'weight_percentage': 15.0,
+                'max_marks': 15.0,
+                'multiplier': 1.5,
+                'category': 'academic'
+            },
+            {
+                'metric_key': 'backlogs_penalty',
+                'display_label': 'Active Backlog Penalty',
+                'weight_percentage': 0.0,
+                'max_marks': 0.0,
+                'penalty_per_unit': 5.0,
+                'category': 'penalty'
+            }
+        ]
+    },
+    'coding_ninjas_placement': {
+        'name': 'Campus Placement Ninja Specialist',
+        'description': 'Targeted placement preparation emphasizing Coding Ninjas Studio, LeetCode, Academic CGPA, and HackerRank.',
+        'normalization_method': 'min_max',
+        'max_total_marks': 100.0,
+        'rules': [
+            {
+                'metric_key': 'codingninjas_solved',
+                'display_label': 'Coding Ninjas Problems Solved (Benchmark 200+)',
+                'weight_percentage': 25.0,
+                'max_marks': 25.0,
+                'multiplier': 25.0 / 200.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'leetcode_solved',
+                'display_label': 'LeetCode Problems Solved (Benchmark 250+)',
+                'weight_percentage': 25.0,
+                'max_marks': 25.0,
+                'multiplier': 25.0 / 250.0,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'cgpa',
+                'display_label': 'Academic CGPA',
+                'weight_percentage': 30.0,
+                'max_marks': 30.0,
+                'multiplier': 3.0,
+                'category': 'academic'
+            },
+            {
+                'metric_key': 'hackerrank_badges',
+                'display_label': 'HackerRank Badges',
+                'weight_percentage': 20.0,
+                'max_marks': 20.0,
+                'multiplier': 2.5,
+                'category': 'coding'
+            },
+            {
+                'metric_key': 'backlogs_penalty',
+                'display_label': 'Active Backlog Penalty',
+                'weight_percentage': 0.0,
+                'max_marks': 0.0,
+                'penalty_per_unit': 5.0,
+                'category': 'penalty'
+            }
+        ]
     }
 }
 

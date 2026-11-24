@@ -1639,7 +1639,251 @@ a:hover {
 .platform-indicator-atcoder { background-color: #6366F1; }
 .platform-indicator-interviewbit { background-color: #E85B5B; }
 .platform-indicator-kaggle { background-color: #20BEFF; }
+.platform-indicator-spoj { background-color: #005F87; }
+.platform-indicator-codingninjas { background-color: #FF5722; }
+.platform-indicator-cses { background-color: #10B981; }
+.platform-indicator-topcoder { background-color: #00A3E0; }
 
 [data-bs-theme="dark"] .platform-indicator-github {
   background-color: #f1f5f9;
+}
+
+/* ==========================================================================
+   ARCHITECT & CREATOR SHOWCASE STYLES
+   ========================================================================== */
+.architect-showcase-card {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.architect-showcase-card:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+.architect-glow-accent {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   ACCESSIBILITY & WCAG 2.1 AA COMPLIANCE ENHANCEMENTS
+   ========================================================================== */
+/* Keyboard Focus Rings */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px var(--primary-glow) !important;
+}
+
+/* Touch Target Minimum Sizing for Mobile Viewports */
+@media (max-width: 768px) {
+  .btn,
+  .nav-link,
+  .dropdown-item,
+  .field-draggable-item {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* High Contrast and Screen Reader Helpers */
+.visually-hidden-focusable:not(:focus):not(:focus-within) {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Dark Mode Contrast Refinements */
+[data-bs-theme="dark"] .text-muted,
+[data-theme="dark"] .text-muted {
+  color: #94a3b8 !important;
+}
+
+[data-bs-theme="dark"] .badge.bg-body-tertiary,
+[data-theme="dark"] .badge.bg-body-tertiary {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+/* ==========================================================================
+   OTP VERIFICATION COMPONENT STYLES (STANDARDIZED)
+   ========================================================================== */
+.otp-auth-card {
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
+  border-radius: var(--radius-xl, 1.25rem);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.otp-icon-glow {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.otp-icon-glow::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  z-index: -1;
+  animation: otpPulse 3s ease-in-out infinite;
+}
+
+@keyframes otpPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.12); opacity: 0.9; }
+}
+
+.otp-grid-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.otp-digit-box {
+  width: 50px;
+  height: 60px;
+  border: 2px solid var(--border-subtle, #e2e8f0);
+  border-radius: 12px;
+  background-color: var(--bg-surface-elevated, #f8fafc);
+  color: var(--text-primary, #0f172a);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 1.85rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  box-shadow: var(--shadow-sm);
+  caret-color: var(--primary, #4f46e5);
+}
+
+.otp-digit-box:hover:not(:disabled) {
+  border-color: var(--border-muted, #cbd5e1);
+  background-color: var(--bg-surface, #ffffff);
+}
+
+.otp-digit-box:focus,
+.otp-digit-box.is-active {
+  border-color: var(--primary, #4f46e5) !important;
+  box-shadow: 0 0 0 4px var(--primary-glow, rgba(79, 70, 229, 0.25)) !important;
+  background-color: var(--bg-surface, #ffffff) !important;
+  transform: translateY(-2px);
+}
+
+.otp-digit-box.is-filled {
+  border-color: var(--primary, #4f46e5);
+  background-color: var(--primary-light, #eef2ff);
+  color: var(--primary, #4f46e5);
+}
+
+.otp-digit-box:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background-color: var(--bg-surface-elevated, #f1f5f9) !important;
+}
+
+.otp-split-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #94a3b8);
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: 0 2px;
+  user-select: none;
+}
+
+@keyframes otpShake {
+  0%, 100% { transform: translateX(0); }
+  15%, 45%, 75% { transform: translateX(-6px); }
+  30%, 60%, 90% { transform: translateX(6px); }
+}
+
+.otp-grid-wrap.otp-shake {
+  animation: otpShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+[data-theme="dark"] .otp-digit-box,
+[data-bs-theme="dark"] .otp-digit-box {
+  background-color: #161e2e !important;
+  border-color: #283548 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .otp-digit-box:focus,
+[data-bs-theme="dark"] .otp-digit-box:focus,
+[data-theme="dark"] .otp-digit-box.is-active,
+[data-bs-theme="dark"] .otp-digit-box.is-active {
+  background-color: #1a2333 !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 4px var(--primary-glow) !important;
+}
+
+[data-theme="dark"] .otp-digit-box.is-filled,
+[data-bs-theme="dark"] .otp-digit-box.is-filled {
+  border-color: var(--primary) !important;
+  background-color: rgba(79, 70, 229, 0.18) !important;
+  color: #818cf8 !important;
+}
+
+@media (max-width: 480px) {
+  .otp-digit-box {
+    width: 42px;
+    height: 52px;
+    font-size: 1.5rem;
+    border-radius: 10px;
+  }
+  .otp-grid-wrap {
+    gap: 0.35rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .otp-digit-box {
+    width: 36px;
+    height: 46px;
+    font-size: 1.25rem;
+    border-radius: 8px;
+  }
+  .otp-grid-wrap {
+    gap: 0.25rem;
+  }
+  .otp-split-divider {
+    display: none;
+  }
 }

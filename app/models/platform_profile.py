@@ -9,7 +9,7 @@ class PlatformProfile(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     submission_id = db.Column(db.Integer, db.ForeignKey('submissions.id'), nullable=False, index=True)
-    platform_name = db.Column(db.String(50), nullable=False, index=True)  # 'leetcode', 'codechef', 'codeforces', 'github', 'hackerrank', 'gfg'
+    platform_name = db.Column(db.String(50), nullable=False, index=True)  # 'leetcode', 'codechef', 'codeforces', 'github', 'hackerrank', 'gfg', 'atcoder', 'interviewbit', 'kaggle', 'spoj', 'codingninjas', 'cses', 'topcoder'
     username = db.Column(db.String(100), nullable=False)
     profile_url = db.Column(db.String(300), nullable=True)
     avatar_url = db.Column(db.String(300), nullable=True)
@@ -20,6 +20,7 @@ class PlatformProfile(db.Model):
     highest_rating = db.Column(db.Float, default=0.0)
     global_rank = db.Column(db.Integer, default=0)
     stars_or_badges = db.Column(db.Integer, default=0)
+    score = db.Column(db.Float, default=0.0)  # Numeric points/score for Spoj, Coding Ninjas, InterviewBit, etc.
     
     # Complete raw stats stored as JSON
     raw_data = db.Column(db.JSON, nullable=True, default=dict)
@@ -42,6 +43,7 @@ class PlatformProfile(db.Model):
             'highest_rating': self.highest_rating,
             'global_rank': self.global_rank,
             'stars_or_badges': self.stars_or_badges,
+            'score': self.score,
             'extraction_status': self.extraction_status,
             'raw_data': self.raw_data or {},
             'extracted_at': self.extracted_at.isoformat() if self.extracted_at else None

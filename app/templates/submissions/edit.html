@@ -192,6 +192,30 @@
               <label class="form-label small mb-1 fw-semibold"><i class="bi bi-trophy text-info me-1"></i> Kaggle</label>
               <input type="text" name="handle_kaggle" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('kaggle').username if 'kaggle' in profiles else '' }}">
             </div>
+
+            <!-- Spoj -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-check2-circle text-primary me-1"></i> Spoj</label>
+              <input type="text" name="handle_spoj" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('spoj').username if 'spoj' in profiles else '' }}">
+            </div>
+
+            <!-- Coding Ninjas -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-lightning-fill text-warning me-1"></i> Coding Ninjas (Studio)</label>
+              <input type="text" name="handle_codingninjas" class="form-control form-control-sm font-monospace" placeholder="Username or profile URL" value="{{ profiles.get('codingninjas').username if 'codingninjas' in profiles else '' }}">
+            </div>
+
+            <!-- CSES -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-code-square text-success me-1"></i> CSES Problem Set</label>
+              <input type="text" name="handle_cses" class="form-control form-control-sm font-monospace" placeholder="Username or account ID" value="{{ profiles.get('cses').username if 'cses' in profiles else '' }}">
+            </div>
+
+            <!-- TopCoder -->
+            <div>
+              <label class="form-label small mb-1 fw-semibold"><i class="bi bi-cpu-fill text-info me-1"></i> TopCoder</label>
+              <input type="text" name="handle_topcoder" class="form-control form-control-sm font-monospace" placeholder="Handle" value="{{ profiles.get('topcoder').username if 'topcoder' in profiles else '' }}">
+            </div>
           </div>
         </div>
 

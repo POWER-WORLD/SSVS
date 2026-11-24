@@ -218,6 +218,22 @@
                     <span class="badge bg-info-subtle text-info border" title="Kaggle: {{ prof.stars_or_badges }} medals">
                       <i class="bi bi-trophy"></i> {{ prof.stars_or_badges }}m
                     </span>
+                  {% elif prof.platform_name == 'spoj' %}
+                    <span class="badge bg-primary-subtle text-primary border" title="Spoj: {{ prof.problems_solved }} solved">
+                      <i class="bi bi-check2-circle"></i> Spoj: {{ prof.problems_solved }}
+                    </span>
+                  {% elif prof.platform_name in ['codingninjas', 'coding_ninjas'] %}
+                    <span class="badge bg-warning-subtle text-warning border" title="Coding Ninjas: {{ prof.problems_solved }} solved">
+                      <i class="bi bi-lightning-fill"></i> CN: {{ prof.problems_solved }}
+                    </span>
+                  {% elif prof.platform_name == 'cses' %}
+                    <span class="badge bg-success-subtle text-success border" title="CSES: {{ prof.problems_solved }} solved">
+                      <i class="bi bi-code-square"></i> CSES: {{ prof.problems_solved }}
+                    </span>
+                  {% elif prof.platform_name == 'topcoder' %}
+                    <span class="badge bg-info-subtle text-info border" title="TopCoder Rating: {{ prof.contest_rating|int }}">
+                      <i class="bi bi-cpu"></i> TC: {{ prof.contest_rating|int }}
+                    </span>
                   {% endif %}
                 {% endfor %}
               </div>
@@ -562,6 +578,18 @@
                   </div>
                   <div class="export-column-item" data-keywords="kaggle medals competitions">
                     <label><input type="checkbox" name="columns" value="kaggle_medals" class="col-check"> Kaggle Medals</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="spoj solved points">
+                    <label><input type="checkbox" name="columns" value="spoj_solved" class="col-check"> Spoj Solved</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="coding ninjas studio solved">
+                    <label><input type="checkbox" name="columns" value="codingninjas_solved" class="col-check"> Coding Ninjas Solved</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="cses tasks solved">
+                    <label><input type="checkbox" name="columns" value="cses_solved" class="col-check"> CSES Solved Tasks</label>
+                  </div>
+                  <div class="export-column-item" data-keywords="topcoder rating srm">
+                    <label><input type="checkbox" name="columns" value="topcoder_rating" class="col-check"> TopCoder Rating</label>
                   </div>
                 </div>
               </div>

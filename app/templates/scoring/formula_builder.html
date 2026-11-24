@@ -116,6 +116,11 @@
                       <option value="atcoder_rating" {{ 'selected' if r.metric_key == 'atcoder_rating' else '' }}>AtCoder Contest Rating</option>
                       <option value="interviewbit_score" {{ 'selected' if r.metric_key == 'interviewbit_score' else '' }}>InterviewBit Practice Score</option>
                       <option value="kaggle_medals" {{ 'selected' if r.metric_key == 'kaggle_medals' else '' }}>Kaggle Medals Count</option>
+                      <option value="spoj_solved" {{ 'selected' if r.metric_key == 'spoj_solved' else '' }}>Spoj Problems Solved</option>
+                      <option value="spoj_points" {{ 'selected' if r.metric_key == 'spoj_points' else '' }}>Spoj World Points</option>
+                      <option value="codingninjas_solved" {{ 'selected' if r.metric_key == 'codingninjas_solved' else '' }}>Coding Ninjas Problems Solved</option>
+                      <option value="cses_solved" {{ 'selected' if r.metric_key == 'cses_solved' else '' }}>CSES Solved Tasks</option>
+                      <option value="topcoder_rating" {{ 'selected' if r.metric_key == 'topcoder_rating' else '' }}>TopCoder Contest Rating</option>
                     </optgroup>
                     {% if custom_fields %}
                     <optgroup label="Custom Form Fields">
@@ -332,6 +337,11 @@
                 <option value="atcoder_rating">AtCoder Contest Rating</option>
                 <option value="interviewbit_score">InterviewBit Practice Score</option>
                 <option value="kaggle_medals">Kaggle Medals Count</option>
+                <option value="spoj_solved">Spoj Problems Solved</option>
+                <option value="spoj_points">Spoj World Points</option>
+                <option value="codingninjas_solved">Coding Ninjas Problems Solved</option>
+                <option value="cses_solved">CSES Solved Tasks</option>
+                <option value="topcoder_rating">TopCoder Contest Rating</option>
                 <option value="cgpa">Academic CGPA (0-10)</option>
                 <option value="backlogs_penalty">Backlog Deduction (Penalty)</option>
               </select>

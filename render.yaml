@@ -18,15 +18,7 @@ services:
         sync: false
       - key: INIT_DB
         value: "1"
-      - key: SMTP_HOST
-        value: smtp.gmail.com
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
+      - key: GAS_EMAIL_URL
         sync: false
-      - key: SMTP_PASSWORD
-        sync: false
-      - key: SMTP_USE_TLS
-        value: "True"
-      - key: SMTP_FROM_EMAIL
+      - key: GAS_SECRET_TOKEN
         sync: false

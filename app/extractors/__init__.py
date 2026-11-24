@@ -11,7 +11,11 @@ from .schema import (
     GeeksforGeeksStats,
     AtCoderStats,
     InterviewBitStats,
-    KaggleStats
+    KaggleStats,
+    SpojStats,
+    CodingNinjasStats,
+    CSESStats,
+    TopCoderStats
 )
 from .base import BaseExtractor
 from .leetcode import LeetCodeExtractor
@@ -23,6 +27,10 @@ from .geeksforgeeks import GeeksforGeeksExtractor
 from .atcoder import AtCoderExtractor
 from .interviewbit import InterviewBitExtractor
 from .kaggle import KaggleExtractor
+from .spoj import SpojExtractor
+from .codingninjas import CodingNinjasExtractor
+from .cses import CSESExtractor
+from .topcoder import TopCoderExtractor
 from .mock_simulator import MockSimulator
 
 # Registry of supported platforms
@@ -36,7 +44,12 @@ EXTRACTORS = {
     'geeksforgeeks': GeeksforGeeksExtractor(),
     'atcoder': AtCoderExtractor(),
     'interviewbit': InterviewBitExtractor(),
-    'kaggle': KaggleExtractor()
+    'kaggle': KaggleExtractor(),
+    'spoj': SpojExtractor(),
+    'codingninjas': CodingNinjasExtractor(),
+    'coding_ninjas': CodingNinjasExtractor(),
+    'cses': CSESExtractor(),
+    'topcoder': TopCoderExtractor()
 }
 
 def extract_all_profiles(handles: Dict[str, str], cgpa: float = 0.0, backlogs: int = 0) -> UnifiedStudentStats:
@@ -82,6 +95,14 @@ def extract_all_profiles(handles: Dict[str, str], cgpa: float = 0.0, backlogs: i
                         stats.interviewbit = result
                     elif platform == 'kaggle':
                         stats.kaggle = result
+                    elif platform == 'spoj':
+                        stats.spoj = result
+                    elif platform in ('codingninjas', 'coding_ninjas'):
+                        stats.codingninjas = result
+                    elif platform == 'cses':
+                        stats.cses = result
+                    elif platform == 'topcoder':
+                        stats.topcoder = result
             except Exception:
                 pass
 

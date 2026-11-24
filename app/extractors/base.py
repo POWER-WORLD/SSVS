@@ -35,7 +35,10 @@ class BaseExtractor(ABC):
             'atcoder': r'(?:https?:\/\/)?(?:www\.)?atcoder\.jp\/users\/([A-Za-z0-9_]+)',
             'interviewbit': r'(?:https?:\/\/)?(?:www\.)?interviewbit\.com\/profile\/([A-Za-z0-9_-]+)',
             'kaggle': r'(?:https?:\/\/)?(?:www\.)?kaggle\.com\/([A-Za-z0-9_.-]+)',
-            'codingninjas': r'(?:https?:\/\/)?(?:www\.)?naukri\.com\/code360\/profile\/([A-Za-z0-9_-]+)'
+            'codingninjas': r'(?:https?:\/\/)?(?:www\.)?(?:naukri\.com\/code360|codingninjas\.com(?:\/codestudio|\/studio)?)\/profile\/([A-Za-z0-9_-]+)',
+            'spoj': r'(?:https?:\/\/)?(?:www\.)?spoj\.com\/users\/([A-Za-z0-9_.-]+)',
+            'cses': r'(?:https?:\/\/)?(?:www\.)?cses\.fi\/user\/([A-Za-z0-9_.-]+)',
+            'topcoder': r'(?:https?:\/\/)?(?:www\.|profiles\.)?topcoder\.com\/(?:members\/)?([A-Za-z0-9_.-]+)'
         }
         
         if platform and platform in patterns:

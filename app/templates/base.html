@@ -66,7 +66,7 @@
         </ul>
 
         <!-- Right Side Utility Controls -->
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2 gap-md-3">
           <!-- Accent Color Switcher Dropdown -->
           <div class="dropdown">
             <button class="btn btn-sm btn-outline-secondary border-0 rounded-circle" type="button" data-bs-toggle="dropdown" title="Accent Color">
@@ -139,17 +139,88 @@
   </main>
 
   <!-- Footer -->
-  <footer class="mt-5 py-4 border-top" style="background: var(--bg-surface);">
-    <div class="container-fluid px-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 small text-muted">
-      <div>
-        <strong>SSVS</strong> — Student Score View System &copy; {{ current_year }}. Enterprise Academic Performance Platform.
+  <footer class="mt-5 pt-5 pb-4 border-top" style="background: var(--bg-surface);">
+    <div class="container-fluid px-4">
+      <div class="row g-4 pb-4 border-bottom">
+        <!-- Col 1: System Branding & Architecture Info -->
+        <div class="col-lg-5 col-md-6">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-3 p-2" style="width: 34px; height: 34px;">
+              <i class="bi bi-award-fill"></i>
+            </span>
+            <span class="fs-5 fw-bold tracking-tight">SSVS<span class="text-primary">.ai</span></span>
+            <span class="badge bg-primary-subtle text-primary ms-1 small">v2.0 Enterprise</span>
+          </div>
+          <p class="small text-secondary mb-3" style="max-width: 440px;">
+            Student Score View System is a next-generation academic intelligence and competitive coding evaluation platform, aggregating and normalizing metrics across 14 platforms with tamper-evident digital verification.
+          </p>
+          <div class="d-flex flex-wrap gap-2 small">
+            <span class="badge bg-body-tertiary text-secondary border"><i class="bi bi-cpu text-primary me-1"></i> 14 Harvesters</span>
+            <span class="badge bg-body-tertiary text-secondary border"><i class="bi bi-shield-check text-success me-1"></i> QR Verified</span>
+            <span class="badge bg-body-tertiary text-secondary border"><i class="bi bi-lightning-charge text-warning me-1"></i> Zero Student Logins</span>
+          </div>
+        </div>
+
+        <!-- Col 2: Developer & Maintainer Showcase -->
+        <div class="col-lg-4 col-md-6">
+          <div class="card card-modern p-3 border shadow-none bg-body-tertiary">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold fs-5 shadow-sm" style="width: 44px; height: 44px;">
+                PK
+              </div>
+              <div>
+                <div class="fw-bold fs-6">Pawan Kumar</div>
+                <div class="small text-muted">Architect &amp; Full-Stack Creator</div>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <a href="https://pawankumar.info/" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 small py-1 px-2" title="Portfolio">
+                <i class="bi bi-globe text-primary"></i> Portfolio
+              </a>
+              <a href="https://www.linkedin.com/in/pawankumar101/" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 small py-1 px-2" title="LinkedIn">
+                <i class="bi bi-linkedin text-info"></i> LinkedIn
+              </a>
+              <a href="https://leetcode.com/u/pk3253702/" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 small py-1 px-2" title="LeetCode">
+                <i class="bi bi-code-slash text-warning"></i> LeetCode
+              </a>
+              <a href="https://github.com/POWER-WORLD" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 small py-1 px-2" title="GitHub">
+                <i class="bi bi-github"></i> GitHub
+              </a>
+            </div>
+            <div class="mt-2 pt-2 border-top">
+              <a href="https://ssvs-portal.onrender.com" target="_blank" rel="noopener noreferrer" class="d-flex align-items-center gap-1 small text-primary fw-semibold text-decoration-none" title="Live Application">
+                <i class="bi bi-rocket-takeoff-fill"></i> Live App: ssvs-portal.onrender.com <i class="bi bi-arrow-up-right small"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Col 3: Quick Links & Resources -->
+        <div class="col-lg-3 col-md-12">
+          <h6 class="fw-bold small text-uppercase text-secondary mb-3">Platform Navigation</h6>
+          <ul class="list-unstyled small d-flex flex-column gap-2 mb-0">
+            <li><a href="{{ url_for('student.public_leaderboard_search') }}" class="text-secondary text-decoration-none"><i class="bi bi-trophy text-warning me-1"></i> Public Leaderboards</a></li>
+            <li><a href="https://ssvs-portal.onrender.com" target="_blank" rel="noopener noreferrer" class="text-secondary text-decoration-none"><i class="bi bi-broadcast text-success me-1"></i> Live Production Cloud</a></li>
+            <li><a href="https://github.com/POWER-WORLD" target="_blank" rel="noopener noreferrer" class="text-secondary text-decoration-none"><i class="bi bi-git me-1"></i> Source Code &amp; Architecture</a></li>
+            <li><span class="text-muted"><i class="bi bi-shield-check text-info me-1"></i> WCAG 2.1 AA Accessible</span></li>
+          </ul>
+        </div>
       </div>
-      <div class="d-flex flex-wrap align-items-center gap-3">
-        <a href="{{ url_for('student.public_leaderboard_search') }}" class="text-secondary text-decoration-none"><i class="bi bi-trophy text-warning me-1"></i> Leaderboards</a>
-        <span class="text-muted opacity-50">•</span>
-        <span class="text-secondary"><i class="bi bi-shield-check text-success me-1"></i> Tamper-Proof Verification</span>
-        <span class="text-muted opacity-50">•</span>
-        <span class="text-secondary"><i class="bi bi-cpu text-primary me-1"></i> 10 Coding Platforms</span>
+
+      <!-- Bottom Sub-Footer -->
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 pt-3 small text-muted">
+        <div>
+          &copy; {{ current_year }} <strong>SSVS</strong> — Student Score View System. Created &amp; Maintained by <strong><a href="https://pawankumar.info/" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-muted">Pawan Kumar</a></strong>.
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <a href="https://pawankumar.info/" target="_blank" rel="noopener noreferrer" class="text-secondary text-decoration-none">Portfolio</a>
+          <span class="text-muted opacity-50">&bull;</span>
+          <a href="https://www.linkedin.com/in/pawankumar101/" target="_blank" rel="noopener noreferrer" class="text-secondary text-decoration-none">LinkedIn</a>
+          <span class="text-muted opacity-50">&bull;</span>
+          <a href="https://github.com/POWER-WORLD" target="_blank" rel="noopener noreferrer" class="text-secondary text-decoration-none">GitHub</a>
+          <span class="text-muted opacity-50">&bull;</span>
+          <a href="https://ssvs-portal.onrender.com" target="_blank" rel="noopener noreferrer" class="text-secondary text-decoration-none">Live App</a>
+        </div>
       </div>
     </div>
   </footer>

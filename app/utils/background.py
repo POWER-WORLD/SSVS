@@ -45,6 +45,14 @@ def _process_submission_job(app, submission_id: int):
                         handles['interviewbit'] = text_val
                     elif 'kaggle' in binding:
                         handles['kaggle'] = text_val
+                    elif 'spoj' in binding:
+                        handles['spoj'] = text_val
+                    elif 'codingninjas' in binding or 'coding_ninjas' in binding or 'naukri' in binding or 'code360' in binding:
+                        handles['codingninjas'] = text_val
+                    elif 'cses' in binding:
+                        handles['cses'] = text_val
+                    elif 'topcoder' in binding:
+                        handles['topcoder'] = text_val
 
             # Also check direct fields if passed
             stats = extract_all_profiles(handles, cgpa=float(sub.cgpa or 0.0), backlogs=int(sub.backlogs or 0))
@@ -178,6 +186,61 @@ def _process_submission_job(app, submission_id: int):
                     stars_or_badges=stats.kaggle.total_medals,
                     raw_data=stats.to_dict()['kaggle'],
                     extraction_status='simulated' if stats.kaggle.is_simulated else 'success'
+                ))
+
+            if stats.spoj:
+                db.session.add(PlatformProfile(
+                    submission_id=sub.id,
+                    platform_name='spoj',
+                    username=stats.spoj.username,
+                    profile_url=stats.spoj.profile_url,
+                    avatar_url=stats.spoj.avatar_url,
+                    problems_solved=stats.spoj.problems_solved,
+                    contest_rating=float(stats.spoj.points),
+                    global_rank=stats.spoj.world_rank,
+                    raw_data=stats.to_dict()['spoj'],
+                    extraction_status='simulated' if stats.spoj.is_simulated else 'success'
+                ))
+
+            if stats.codingninjas:
+                db.session.add(PlatformProfile(
+                    submission_id=sub.id,
+                    platform_name='codingninjas',
+                    username=stats.codingninjas.username,
+                    profile_url=stats.codingninjas.profile_url,
+                    avatar_url=stats.codingninjas.avatar_url,
+                    problems_solved=stats.codingninjas.problems_solved,
+                    contest_rating=float(stats.codingninjas.coding_score),
+                    global_rank=stats.codingninjas.global_rank,
+                    stars_or_badges=stats.codingninjas.badges_count,
+                    raw_data=stats.to_dict()['codingninjas'],
+                    extraction_status='simulated' if stats.codingninjas.is_simulated else 'success'
+                ))
+
+            if stats.cses:
+                db.session.add(PlatformProfile(
+                    submission_id=sub.id,
+                    platform_name='cses',
+                    username=stats.cses.username,
+                    profile_url=stats.cses.profile_url,
+                    avatar_url=stats.cses.avatar_url,
+                    problems_solved=stats.cses.problems_solved,
+                    raw_data=stats.to_dict()['cses'],
+                    extraction_status='simulated' if stats.cses.is_simulated else 'success'
+                ))
+
+            if stats.topcoder:
+                db.session.add(PlatformProfile(
+                    submission_id=sub.id,
+                    platform_name='topcoder',
+                    username=stats.topcoder.username,
+                    profile_url=stats.topcoder.profile_url,
+                    avatar_url=stats.topcoder.avatar_url,
+                    problems_solved=stats.topcoder.problems_solved,
+                    contest_rating=float(stats.topcoder.rating),
+                    highest_rating=float(stats.topcoder.highest_rating),
+                    raw_data=stats.to_dict()['topcoder'],
+                    extraction_status='simulated' if stats.topcoder.is_simulated else 'success'
                 ))
 
             sub.status = 'scoring'

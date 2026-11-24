@@ -203,6 +203,30 @@
             <td class="text-center font-monospace">{{ c.kaggle_medals }}</td>
             {% endfor %}
           </tr>
+          <tr>
+            <td class="fw-semibold">Spoj Solved / Points</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.spoj_solved }} ({{ "%.1f"|format(c.spoj_points) }} pts)</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">Coding Ninjas Solved</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.codingninjas_solved }} {% if c.codingninjas_level %}({{ c.codingninjas_level }}){% endif %}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">CSES Solved Tasks</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.cses_solved }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="fw-semibold">TopCoder Rating</td>
+            {% for c in candidates %}
+            <td class="text-center font-monospace">{{ c.topcoder_rating|int }}</td>
+            {% endfor %}
+          </tr>
           
           <!-- Actions -->
           <tr>

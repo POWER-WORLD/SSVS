@@ -227,6 +227,10 @@ class FormBuilder {
             <option value="atcoder_handle" ${f.platform_metric_binding === 'atcoder_handle' ? 'selected' : ''}>AtCoder Profile URL</option>
             <option value="interviewbit_handle" ${f.platform_metric_binding === 'interviewbit_handle' ? 'selected' : ''}>InterviewBit Profile URL</option>
             <option value="kaggle_handle" ${f.platform_metric_binding === 'kaggle_handle' ? 'selected' : ''}>Kaggle Profile URL</option>
+            <option value="spoj_handle" ${f.platform_metric_binding === 'spoj_handle' ? 'selected' : ''}>Spoj Profile URL / Handle</option>
+            <option value="codingninjas_handle" ${f.platform_metric_binding === 'codingninjas_handle' ? 'selected' : ''}>Coding Ninjas (Studio) Profile URL</option>
+            <option value="cses_handle" ${f.platform_metric_binding === 'cses_handle' ? 'selected' : ''}>CSES Handle / ID</option>
+            <option value="topcoder_handle" ${f.platform_metric_binding === 'topcoder_handle' ? 'selected' : ''}>TopCoder Handle</option>
           </select>
           <div class="form-text small">Automatically binds this input to extraction and scoring engines.</div>
         </div>

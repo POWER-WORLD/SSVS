@@ -50,7 +50,14 @@ class FormulaEvaluator:
             'interviewbit_score': 0.0,
             'interviewbit_solved': 0.0,
             'kaggle_medals': 0.0,
-            'kaggle_score': 0.0
+            'kaggle_score': 0.0,
+            'spoj_solved': 0.0,
+            'spoj_points': 0.0,
+            'codingninjas_solved': 0.0,
+            'codingninjas_score': 0.0,
+            'cses_solved': 0.0,
+            'topcoder_rating': 0.0,
+            'topcoder_solved': 0.0
         }
 
         # Inspect extracted platform profiles (using preloaded list when provided)
@@ -93,6 +100,17 @@ class FormulaEvaluator:
                 ds = safe_float(raw.get('datasets_count', 0))
                 nb = safe_float(raw.get('notebooks_count', 0))
                 metrics['kaggle_score'] = comp * 10.0 + ds * 5.0 + nb * 5.0
+            elif p_name == 'spoj':
+                metrics['spoj_solved'] = safe_float(profile.problems_solved or raw.get('problems_solved', 0))
+                metrics['spoj_points'] = safe_float(profile.contest_rating or raw.get('points', 0.0))
+            elif p_name in ('codingninjas', 'coding_ninjas'):
+                metrics['codingninjas_solved'] = safe_float(profile.problems_solved or raw.get('problems_solved', 0))
+                metrics['codingninjas_score'] = safe_float(profile.contest_rating or raw.get('coding_score', 0))
+            elif p_name == 'cses':
+                metrics['cses_solved'] = safe_float(profile.problems_solved or raw.get('problems_solved', 0))
+            elif p_name == 'topcoder':
+                metrics['topcoder_rating'] = safe_float(profile.contest_rating or raw.get('rating', 0))
+                metrics['topcoder_solved'] = safe_float(profile.problems_solved or raw.get('problems_solved', 0))
 
         # Inspect custom form submission values (custom fields)
         val_list = values if values is not None else (submission.values.all() if hasattr(submission, 'values') else [])

@@ -748,6 +748,22 @@
                         <i class="bi bi-lightning-charge-fill text-primary"></i>
                         <span class="text-capitalize">Codeforces:</span>
                         <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
+                      {% elif p.platform_name == 'spoj' %}
+                        <i class="bi bi-check2-circle text-primary"></i>
+                        <span class="text-capitalize">Spoj:</span>
+                        <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
+                      {% elif p.platform_name in ('codingninjas', 'coding_ninjas') %}
+                        <i class="bi bi-lightning-fill text-warning"></i>
+                        <span class="text-capitalize">Coding Ninjas:</span>
+                        <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
+                      {% elif p.platform_name == 'cses' %}
+                        <i class="bi bi-code-square text-success"></i>
+                        <span class="text-capitalize">CSES:</span>
+                        <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
+                      {% elif p.platform_name == 'topcoder' %}
+                        <i class="bi bi-cpu-fill text-info"></i>
+                        <span class="text-capitalize">TopCoder:</span>
+                        <span class="font-monospace text-muted" style="font-size: 0.68rem;">{{ p.username }}</span>
                       {% else %}
                         <i class="bi bi-globe2 text-secondary"></i>
                         <span class="text-capitalize">{{ p.platform_name }}:</span>
@@ -765,6 +781,14 @@
                       {% elif p.platform_name == 'github' %}
                         <span>{{ p.problems_solved }} Repos</span>
                       {% elif p.platform_name == 'codeforces' %}
+                        <span>{{ p.contest_rating|round|int }} Rtg</span>
+                      {% elif p.platform_name == 'spoj' %}
+                        <span>{{ p.problems_solved }} Solved</span>
+                      {% elif p.platform_name in ('codingninjas', 'coding_ninjas') %}
+                        <span>{{ p.problems_solved }} Solved</span>
+                      {% elif p.platform_name == 'cses' %}
+                        <span>{{ p.problems_solved }} Solved</span>
+                      {% elif p.platform_name == 'topcoder' %}
                         <span>{{ p.contest_rating|round|int }} Rtg</span>
                       {% else %}
                         <span>{{ p.problems_solved }} Solved</span>

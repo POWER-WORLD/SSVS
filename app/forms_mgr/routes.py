@@ -419,7 +419,7 @@ def edit_submission(form_id, submission_id):
                 val.value_text = request.form.get(f_key, '').strip()
                 
         # Update platform handles
-        platforms = ['leetcode', 'codechef', 'codeforces', 'github', 'hackerrank', 'gfg', 'atcoder', 'interviewbit', 'kaggle']
+        platforms = ['leetcode', 'codechef', 'codeforces', 'github', 'hackerrank', 'gfg', 'atcoder', 'interviewbit', 'kaggle', 'spoj', 'codingninjas', 'cses', 'topcoder']
         profile_map = {p.platform_name.lower(): p for p in submission.platform_profiles.all()}
         
         for p_name in platforms:
@@ -616,6 +616,10 @@ def compare_submissions(form_id):
         atc = prof_map.get('atcoder')
         ib = prof_map.get('interviewbit')
         kg = prof_map.get('kaggle')
+        spoj = prof_map.get('spoj')
+        cn = prof_map.get('codingninjas')
+        cses = prof_map.get('cses')
+        tc = prof_map.get('topcoder')
         
         candidates_data.append({
             'id': s.id,
@@ -640,6 +644,12 @@ def compare_submissions(form_id):
             'atcoder_rating': atc.contest_rating if atc else 0,
             'interviewbit_score': ib.contest_rating if ib else 0,
             'kaggle_medals': kg.stars_or_badges if kg else 0,
+            'spoj_solved': spoj.problems_solved if spoj else 0,
+            'spoj_points': float((spoj.raw_data or {}).get('points', 0)) if spoj else 0.0,
+            'codingninjas_solved': cn.problems_solved if cn else 0,
+            'codingninjas_level': (cn.raw_data or {}).get('level', '') if cn else '',
+            'cses_solved': cses.problems_solved if cses else 0,
+            'topcoder_rating': tc.contest_rating if tc else 0,
         })
         
     return render_template(
@@ -671,6 +681,13 @@ DEFAULT_BENCHMARKS = {
     'interviewbit_solved': 200.0,
     'kaggle_medals': 5.0,
     'kaggle_score': 100.0,
+    'spoj_solved': 150.0,
+    'spoj_points': 500.0,
+    'codingninjas_solved': 200.0,
+    'codingninjas_score': 1500.0,
+    'cses_solved': 100.0,
+    'topcoder_rating': 1500.0,
+    'topcoder_solved': 50.0,
 }
 
 @forms_mgr_bp.route('/<int:form_id>/formula', methods=['GET', 'POST'])

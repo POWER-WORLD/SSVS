@@ -16,13 +16,25 @@ ENV/
 env.bak/
 venv.bak/
 
-# Sensitive Environment Variables (DO NOT COMMIT)
+# Sensitive Environment Variables & Secrets (DO NOT COMMIT)
 .env
-.env.local
-.env.*.local
-
-# Allow committing environment template
+.env.*
 !.env.example
+secrets/
+credentials/
+credentials*.json
+client_secret*.json
+service_account*.json
+
+# SSL / TLS Certificates, Private Keys & Tokens
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.id_rsa
+id_rsa*
 
 # Local SQLite databases & instance storage
 instance/

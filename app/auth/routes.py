@@ -62,7 +62,7 @@ def login():
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """Teacher registration: saves teacher profile and dispatches SMTP OTP."""
+    """Teacher registration: saves teacher profile and dispatches OTP via Google Apps Script."""
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.overview'))
         
@@ -115,17 +115,20 @@ def register():
 @auth_bp.route('/verify-login', endpoint='verify_login', methods=['GET', 'POST'])
 def verify_otp():
     """Unified OTP verification endpoint for teacher registration and login."""
-    email = request.args.get('email') or session.get('pending_verification_email')
-    purpose = request.args.get('purpose') or session.get('pending_verification_purpose', 'registration')
+    email = (request.form.get('email') or request.args.get('email') or session.get('pending_verification_email') or '').lower().strip()
+    purpose = (request.form.get('purpose') or request.args.get('purpose') or session.get('pending_verification_purpose') or 'registration').strip()
     
     if not email:
         flash('No pending verification request found. Please log in or register.', 'warning')
         return redirect(url_for('auth.login'))
 
-    user = Teacher.query.filter_by(email=email.lower().strip()).first()
+    user = Teacher.query.filter_by(email=email).first()
     if not user:
         flash('Account not found. Please register.', 'danger')
         return redirect(url_for('auth.register'))
+
+    session['pending_verification_email'] = email
+    session['pending_verification_purpose'] = purpose
 
     form = VerifyOTPForm()
     if form.validate_on_submit():
@@ -169,10 +172,10 @@ def verify_otp():
 def resend_otp():
     """Resends verification OTP with 60-second cooldown."""
     is_json = request.is_json
-    data = request.get_json(silent=True) or request.form
+    data = request.get_json(silent=True) or request.form or {}
     
-    email = (data.get('email') or session.get('pending_verification_email', '')).lower().strip()
-    purpose = data.get('purpose') or session.get('pending_verification_purpose', 'registration')
+    email = (data.get('email') or request.args.get('email') or session.get('pending_verification_email', '')).lower().strip()
+    purpose = (data.get('purpose') or request.args.get('purpose') or session.get('pending_verification_purpose', 'registration')).strip()
     
     if not email:
         msg = "Email address is required to resend verification code."
@@ -195,7 +198,7 @@ def resend_otp():
             return jsonify({'success': True, 'message': msg, 'cooldown': 60})
         flash(msg, 'success')
     else:
-        msg = f"{err_or_id}"
+        msg = f"Failed to send email: {err_or_id}"
         if is_json:
             return jsonify({'success': False, 'message': msg, 'cooldown': 0}), 200
         flash(msg, 'danger')

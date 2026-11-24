@@ -130,6 +130,14 @@
                     <i class="bi bi-bullseye text-primary me-1"></i> InterviewBit
                   {% elif prof.platform_name == 'kaggle' %}
                     <i class="bi bi-trophy text-info me-1"></i> Kaggle
+                  {% elif prof.platform_name == 'spoj' %}
+                    <i class="bi bi-check2-circle text-primary me-1"></i> Spoj
+                  {% elif prof.platform_name in ('codingninjas', 'coding_ninjas') %}
+                    <i class="bi bi-lightning-fill text-warning me-1"></i> Coding Ninjas
+                  {% elif prof.platform_name == 'cses' %}
+                    <i class="bi bi-code-square text-success me-1"></i> CSES
+                  {% elif prof.platform_name == 'topcoder' %}
+                    <i class="bi bi-cpu-fill text-info me-1"></i> TopCoder
                   {% else %}
                     {{ prof.platform_name|title }}
                   {% endif %}
@@ -181,6 +189,22 @@
                   <div class="d-flex justify-content-between"><span>Tier:</span><strong class="text-capitalize">{{ raw.get('tier', 'Contributor') }}</strong></div>
                   <div class="d-flex justify-content-between"><span>Total Medals:</span><strong>{{ prof.stars_or_badges }} medals</strong></div>
                   <div class="d-flex justify-content-between"><span>Notebooks:</span><strong>{{ raw.get('notebooks_count', 0) }}</strong></div>
+                {% elif prof.platform_name == 'spoj' %}
+                  <div class="d-flex justify-content-between"><span>Problems Solved:</span><strong>{{ prof.problems_solved }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Points:</span><strong>{{ "%.1f"|format(raw.get('points', prof.problems_solved)) }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>World Rank:</span><strong>#{{ prof.global_rank or raw.get('rank', '—') }}</strong></div>
+                {% elif prof.platform_name in ('codingninjas', 'coding_ninjas') %}
+                  <div class="d-flex justify-content-between"><span>Problems Solved:</span><strong>{{ prof.problems_solved }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Ninja Level:</span><strong class="text-capitalize">{{ raw.get('level', 'Ninja') }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Day Streak:</span><strong>{{ raw.get('streak', 0) }} days</strong></div>
+                {% elif prof.platform_name == 'cses' %}
+                  <div class="d-flex justify-content-between"><span>Solved Tasks:</span><strong>{{ prof.problems_solved }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Total Tasks:</span><strong>{{ raw.get('total_tasks', 300) }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Completion:</span><strong>{{ "%.1f"|format((prof.problems_solved / (raw.get('total_tasks', 300) or 1)) * 100) }}%</strong></div>
+                {% elif prof.platform_name == 'topcoder' %}
+                  <div class="d-flex justify-content-between"><span>Algorithm Rating:</span><strong>{{ prof.contest_rating|int }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Highest Rating:</span><strong>{{ prof.highest_rating|int }}</strong></div>
+                  <div class="d-flex justify-content-between"><span>Division:</span><strong class="text-capitalize">{{ raw.get('division', 'Div 2') }}</strong></div>
                 {% endif %}
               </div>
             </div>
